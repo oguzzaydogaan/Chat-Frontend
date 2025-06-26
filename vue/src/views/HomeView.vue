@@ -5,8 +5,12 @@ const uid = ref('')
 </script>
 
 <template>
-  <main class="flex justify-center items-center h-screen p-3">
-    <div class="bg-white grid grid-cols-1 w-full shodow-lg rounded-lg p-5">
+  <main
+    class="flex justify-center items-center h-screen px-3 xl:px-[400px] lg:px-[300px] md:px-[200px] sm:px-[100px]"
+  >
+    <div
+      class="bg-white grid grid-cols-1 w-full shodow-lg rounded-lg p-5 px-8 xl:px-20 lg:px-16 md:px-8 sm:px-12"
+    >
       <h4 class="text-center text-2xl text-gray-700 font-semibold">Sign in</h4>
       <input
         v-model="uid"

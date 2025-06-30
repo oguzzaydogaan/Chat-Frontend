@@ -2,10 +2,18 @@
 import { RouterLink, useRoute } from 'vue-router'
 import Navbar from '../components/Navbar.vue'
 import { onMounted, ref } from 'vue'
+import checkAuthorization from '@/assets/js/checkAuthorization'
+
 const route = useRoute()
 const chats = ref([{ id: 0, name: '' }])
 async function GetChats() {
-  const response = await fetch('https://localhost:7193/api/users/' + route.params.uid)
+  checkAuthorization()
+  const token = localStorage.getItem('token')
+  const response = await fetch('https://localhost:7193/api/users/' + route.params.uid + '/chats', {
+    headers: {
+      Authorization: 'Bearer ' + token!,
+    },
+  })
   const data = await response.json()
   chats.value = data
   console.log(chats.value)

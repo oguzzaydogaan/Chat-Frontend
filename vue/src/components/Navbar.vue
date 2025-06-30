@@ -1,6 +1,7 @@
 <script setup>
 import { RouterLink, useRoute } from 'vue-router'
 const route = useRoute()
+import logout from '@/assets/js/logout'
 </script>
 
 <template>
@@ -11,8 +12,9 @@ const route = useRoute()
     >
       <i class="bi bi-house"></i>
     </RouterLink>
-    <RouterLink to="/" class="hover:text-gray-300 transition-all duration-300">
+
+    <button @click="logout" class="hover:text-gray-300 transition-all duration-300">
       <i class="bi bi-box-arrow-in-left"></i>
-    </RouterLink>
+    </button>
   </nav>
 </template>

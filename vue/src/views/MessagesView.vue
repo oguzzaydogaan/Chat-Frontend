@@ -1,15 +1,18 @@
 <script setup lang="ts">
 import { RouterLink, useRoute } from 'vue-router'
-import { onMounted, ref } from 'vue'
+import { onMounted, ref, nextTick } from 'vue'
 import Navbar from '../components/Navbar.vue'
 import checkAuthorization from '@/assets/js/checkAuthorization'
 
 const route = useRoute()
-const messageContent = ref('')
+const socket = ref<WebSocket | null>(null)
+const scrollHere = ref<HTMLElement | null>(null)
+const newMessage = ref('')
 const chatid = ref(null)
 const name = ref('')
-const messages = ref([{ id: 0, userId: '', sender: { id: '', name: '' }, content: '' }])
-
+const messages = ref([
+  { Id: 0, UserId: '', Sender: { Id: '', Name: '' }, Content: '', IsDeleted: false },
+])
 async function GetChat() {
   checkAuthorization()
   const response = await fetch(
@@ -21,59 +24,77 @@ async function GetChat() {
       },
     },
   )
+  if (!response.ok) {
+    if (response.status == 401) {
+      confirm('Oturumun süresi doldu.')
+    }
+    window.location.href = '/'
+  }
   const data = await response.json()
   console.log(data)
-  chatid.value = data.id
-  name.value = data.name
-  messages.value = data.messages
+  chatid.value = data.Id
+  name.value = data.Name
+  messages.value = data.Messages
 }
-async function SendMessage() {
-  checkAuthorization()
-  if (messageContent.value.trim() === '') return
-  const response = await fetch('https://localhost:7193/api/messages', {
-    method: 'POST',
-    headers: {
-      Authorization: 'Bearer ' + localStorage.getItem('token')!,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      userId: route.params.uid,
-      content: messageContent.value,
-      chatId: route.params.cid,
-    }),
-  })
-  if (response.ok) {
-    messageContent.value = ''
-    await GetChat()
-  } else {
-    console.error('Failed to send message')
-  }
-}
-type Message = { id: number; content: string; sender: { id: string; name: string } }
+async function WsHandler() {
+  socket.value = new WebSocket(
+    `wss://localhost:7193/ws/message?chatId=${route.params.cid}&userId=${route.params.uid}&accessToken=${localStorage.getItem('token')}`,
+  )
 
-async function DeleteMessage(message: Message) {
-  if (message.sender.id != route.params.uid) {
-    alert('You can only delete your own messages')
-    return
+  socket.value.onopen = () => {
+    console.log('WebSocket connection established')
   }
-  if (!confirm('Are you sure you want to delete this message?')) return
-  checkAuthorization()
-  const response = await fetch('https://localhost:7193/api/messages/' + message.id, {
-    method: 'DELETE',
-    headers: {
-      Authorization: 'Bearer ' + localStorage.getItem('token')!,
-      'Content-Type': 'application/json',
-    },
-  })
-  if (response.ok) {
-    await GetChat()
-  } else {
-    console.error('Failed to delete message')
+
+  socket.value.onmessage = async (event) => {
+    const data = await JSON.parse(event.data)
+    if (data.IsDeleted == true) {
+      const index = messages.value.findIndex((msg) => msg.Id === data.Id)
+      if (index !== -1) {
+        messages.value.splice(index, 1)
+      }
+    } else {
+      messages.value.push(data)
+    }
+    await nextTick()
+    scrollHere.value?.scrollIntoView({ behavior: 'smooth' })
+  }
+
+  socket.value.onclose = (event) => {
+    socket.value = null
+    alert('Oturum sonlandırıldı.')
+    window.location.href = '/'
+    console.log(event)
   }
 }
 onMounted(async () => {
   await GetChat()
+  await nextTick()
+  scrollHere.value?.scrollIntoView({ behavior: 'smooth' })
+  await WsHandler()
 })
+const SendMessage = () => {
+  if (newMessage.value.trim() === '') return
+  if (socket.value?.readyState === WebSocket.OPEN) {
+    socket.value.send(
+      JSON.stringify({
+        Content: newMessage.value,
+        ChatId: Number(route.params.cid),
+        UserId: Number(route.params.uid),
+      }),
+    )
+  }
+  newMessage.value = ''
+}
+async function DeleteMessage(uid: number, mid: number) {
+  if (uid != Number(route.params.uid)) {
+    alert('You can only delete your own messages')
+    return
+  }
+  if (!confirm('Are you sure you want to delete this message?')) return
+  if (socket.value?.readyState === WebSocket.OPEN) {
+    socket.value.send('delete/' + String(mid))
+  }
+}
 </script>
 
 <template>
@@ -87,18 +108,24 @@ onMounted(async () => {
     <div class="grow overflow-y-auto">
       <div v-for="message in messages" class="mx-4 mb-3">
         <p
-          @click="DeleteMessage(message)"
-          :class="`wrap-anywhere select-text shadow-md p-3 rounded-md w-fit ${message.sender.id != route.params.uid ? 'bg-blue-500 text-white' : 'bg-white text-gray-500 ms-auto'}`"
+          @click="DeleteMessage(Number(message.Sender.Id), message.Id)"
+          :class="`wrap-anywhere select-text shadow-md p-3 rounded-md w-fit ${message.Sender.Id != route.params.uid ? 'bg-blue-500 text-white' : 'bg-white text-gray-500 ms-auto'}`"
         >
-          {{ message.sender.id == route.params.uid ? message.content : message.content }}
+          {{
+            message.Sender.Id == route.params.uid
+              ? message.Content
+              : message.Sender.Name + ': ' + message.Content
+          }}
         </p>
       </div>
+
+      <div ref="scrollHere"></div>
     </div>
 
     <div class="flex justify-between gap-5 items-center p-3 bg-white border-t-2 border-gray-200">
       <input
         @keyup.enter="SendMessage"
-        v-model="messageContent"
+        v-model="newMessage"
         class="text-gray-600 placeholder-gray-600 grow bg-gray-200 rounded-md text-center p-2 focus:outline-blue-500"
         type="text"
         placeholder="Type your message here..."

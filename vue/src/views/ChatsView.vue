@@ -3,8 +3,10 @@ import { RouterLink, useRoute } from 'vue-router'
 import Navbar from '../components/Navbar.vue'
 import { onMounted, ref } from 'vue'
 import checkAuthorization from '@/assets/js/checkAuthorization'
+import { useChatsStore } from '@/stores/chats'
 
 const route = useRoute()
+const store = ref(useChatsStore())
 const chats = ref([{ id: 0, name: '' }])
 async function GetChats() {
   checkAuthorization()
@@ -15,8 +17,7 @@ async function GetChats() {
     },
   })
   const data = await response.json()
-  chats.value = data
-  console.log(chats.value)
+  store.value.chats = data
 }
 onMounted(async () => {
   await GetChats()
@@ -28,7 +29,7 @@ onMounted(async () => {
     <Navbar />
     <h2 class="text-center text-3xl text-gray-800 my-2 font-semibold">Chats</h2>
     <RouterLink
-      v-for="chat in chats"
+      v-for="chat in store.chats"
       :to="`/${route.params.uid}/chats-${chat.id}/messages`"
       class="block bg-white border-b-1 border-gray-400 p-4 text-gray-600"
     >

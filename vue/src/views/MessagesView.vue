@@ -3,8 +3,10 @@ import { RouterLink, useRoute } from 'vue-router'
 import { onMounted, ref, nextTick } from 'vue'
 import Navbar from '../components/Navbar.vue'
 import checkAuthorization from '@/assets/js/checkAuthorization'
+import { useChatsStore } from '@/stores/chats'
 
 const route = useRoute()
+const store = ref(useChatsStore())
 const socket = ref<WebSocket | null>(null)
 const scrollHere = ref<HTMLElement | null>(null)
 const newMessage = ref('')
@@ -46,14 +48,16 @@ async function WsHandler() {
   }
 
   socket.value.onmessage = async (event) => {
+    console.log(event)
     const data = await JSON.parse(event.data)
     if (data.IsDeleted == true) {
-      const index = messages.value.findIndex((msg) => msg.Id === data.Id)
-      if (index !== -1) {
-        messages.value.splice(index, 1)
-      }
+      messages.value = messages.value.filter((msg) => msg.Id != data.Id)
     } else {
       messages.value.push(data)
+      const index = store.value.chats.findIndex((c) => c.id == Number(route.params.cid))
+      const chat = store.value.chats[index]
+      store.value.chats.splice(index, 1)
+      store.value.chats.splice(0, 0, chat)
     }
     await nextTick()
     scrollHere.value?.scrollIntoView({ behavior: 'smooth' })
@@ -62,7 +66,6 @@ async function WsHandler() {
   socket.value.onclose = (event) => {
     socket.value = null
     alert('Oturum sonlandırıldı.')
-    window.location.href = '/'
     console.log(event)
   }
 }

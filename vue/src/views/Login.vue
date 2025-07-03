@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { ref } from 'vue'
+import { useRouter } from 'vue-router'
 
 const email = ref('')
+const router = useRouter()
 const password = ref('')
 
 async function handleSignIn() {
@@ -23,7 +25,7 @@ async function handleSignIn() {
   console.log(data)
   localStorage.setItem('token', data.token)
   localStorage.setItem('expiresIn', data.expiresIn)
-  window.location.href = `/${data.id}/chats`
+  router.push(`/${data.id}/chats`)
 }
 </script>
 

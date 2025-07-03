@@ -1,6 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import ChatsView from '../views/ChatsView.vue'
-import MessagesView from '../views/MessagesView.vue'
+import Chats from '../views/Chats.vue'
+import Messages from '../views/Messages.vue'
 import Login from '@/views/Login.vue'
 
 const router = createRouter({
@@ -14,12 +14,12 @@ const router = createRouter({
     {
       path: '/:uid/chats',
       name: 'chats',
-      component: ChatsView,
+      component: Chats,
     },
     {
       path: '/:uid/chats-:cid/messages',
       name: 'messages',
-      component: MessagesView,
+      component: Messages,
     },
   ],
 })

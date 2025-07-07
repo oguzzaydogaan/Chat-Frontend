@@ -1,15 +1,16 @@
 <script setup lang="ts">
-import { RouterLink, useRoute } from 'vue-router'
+import { useRoute } from 'vue-router'
 import { onMounted, ref, nextTick } from 'vue'
 import Navbar from '../components/Navbar.vue'
 import checkAuthorization from '@/assets/js/checkAuthorization'
 import { useSocketStore } from '@/stores/socket'
+import Swal from 'sweetalert2'
 
 const route = useRoute()
+const userId = localStorage.getItem('userId')
 const socket = useSocketStore()
 const scrollHere = ref<HTMLElement | null>(null)
 const messages = ref<any>([])
-socket.SetName(route.name)
 socket.SetChatId(Number(route.params.cid))
 const newMessage = ref('')
 const name = ref('')
@@ -17,7 +18,7 @@ const name = ref('')
 async function GetChat() {
   checkAuthorization()
   const response = await fetch(
-    'https://localhost:7193/api/chats/' + route.params.cid + '/users/' + route.params.uid,
+    'https://localhost:7193/api/chats/' + route.params.cid + '/users/' + userId,
     {
       method: 'GET',
       headers: {
@@ -38,14 +39,34 @@ async function GetChat() {
 }
 
 async function wsSender(socketMessage: any) {
-  socket.sendMessage(socketMessage)
-  newMessage.value = ''
+  if (socketMessage.Type == 'Delete-Message') {
+    Swal.fire({
+      title: 'Are you sure?',
+      text: "You won't be able to revert this!",
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Yes, delete it!',
+      cancelButtonText: 'No, cancel!',
+      reverseButtons: true,
+      allowOutsideClick: false,
+    }).then((result) => {
+      if (result.isConfirmed) {
+        socket.sendMessage(socketMessage)
+        Swal.fire({
+          title: 'Deleted!',
+          text: 'Your file has been deleted.',
+          icon: 'success',
+        })
+      }
+    })
+  } else {
+    socket.sendMessage(socketMessage)
+    newMessage.value = ''
+  }
 }
 
 function newMessageEvent(event: any) {
   if (event.detail.ChatId == Number(route.params.cid)) {
-    console.log('Gelen event:', event.detail)
-    console.log(messages)
     messages.value.push(event.detail)
   }
 }
@@ -55,7 +76,7 @@ function deleteMessageEvent(event: any) {
 
 onMounted(async () => {
   await GetChat()
-  socket.connect(route.params.uid)
+  socket.connect(userId)
   window.addEventListener('new-message', newMessageEvent)
   window.addEventListener('delete-message', deleteMessageEvent)
 })
@@ -80,10 +101,10 @@ onMounted(async () => {
               },
             })
           "
-          :class="`wrap-anywhere select-text shadow-md p-3 rounded-md w-fit ${message.Sender.Id != route.params.uid ? 'bg-blue-500 text-white' : 'bg-white text-gray-500 ms-auto'}`"
+          :class="`wrap-anywhere select-text shadow-md p-3 rounded-md w-fit ${message.Sender.Id != userId ? 'bg-blue-500 text-white' : 'bg-white text-gray-500 ms-auto'}`"
         >
           {{
-            message.Sender.Id == route.params.uid
+            message.Sender.Id == userId
               ? message.Content
               : message.Sender.Name + ': ' + message.Content
           }}
@@ -99,7 +120,7 @@ onMounted(async () => {
           wsSender({
             Type: 'Send-Message',
             Payload: {
-              UserId: Number(route.params.uid),
+              UserId: Number(userId),
               ChatId: Number(route.params.cid),
               Content: newMessage,
             },
@@ -115,7 +136,7 @@ onMounted(async () => {
           wsSender({
             Type: 'Send-Message',
             Payload: {
-              UserId: Number(route.params.uid),
+              UserId: Number(userId),
               ChatId: Number(route.params.cid),
               Content: newMessage,
             },

@@ -5,15 +5,13 @@ import { onMounted, ref } from 'vue'
 import checkAuthorization from '@/assets/js/checkAuthorization'
 import { useSocketStore } from '@/stores/socket'
 
-const route = useRoute()
-const router = useRouter()
+const userId = localStorage.getItem('userId')
 const socket = useSocketStore()
-socket.SetName(route.name)
 const chats = ref<any>([])
 async function GetChats() {
   checkAuthorization()
   const token = localStorage.getItem('token')
-  const response = await fetch('https://localhost:7193/api/users/' + route.params.uid + '/chats', {
+  const response = await fetch('https://localhost:7193/api/users/' + userId + '/chats', {
     headers: {
       Authorization: 'Bearer ' + token!,
     },
@@ -39,7 +37,7 @@ function deleteMessageEvent(event: any) {
 }
 onMounted(async () => {
   await GetChats()
-  socket.connect(route.params.uid)
+  socket.connect(userId)
   window.addEventListener('new-message', newMessageEvent)
   window.addEventListener('delete-message', deleteMessageEvent)
 })
@@ -51,7 +49,7 @@ onMounted(async () => {
     <h2 class="text-center text-3xl text-gray-800 my-2 font-semibold">Chats</h2>
     <RouterLink
       v-for="chat in chats"
-      :to="`/${route.params.uid}/chats-${chat.id}/messages`"
+      :to="`/messages/${chat.id}`"
       class="block bg-white border-b-1 border-gray-400 p-4 text-gray-600"
     >
       <div class="font-bold">{{ chat.name }}</div>

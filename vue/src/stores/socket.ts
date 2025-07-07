@@ -10,7 +10,6 @@ type Message = {
 
 export const useSocketStore = defineStore('socket', {
   state: () => ({
-    name: '',
     socket: null as WebSocket | null,
     isConnected: false,
     chatId: 0,
@@ -41,9 +40,9 @@ export const useSocketStore = defineStore('socket', {
         }
       }
 
-      this.socket.onclose = () => {
+      this.socket.onclose = (event) => {
         this.socket = null
-        console.log('WebSocket bağlantısı kapandı')
+        console.log(event.reason)
         this.isConnected = false
       }
 
@@ -85,10 +84,6 @@ export const useSocketStore = defineStore('socket', {
       } else {
         console.warn('WebSocket açık değil, mesaj gönderilemiyor')
       }
-    },
-
-    SetName(setter: any) {
-      this.name = setter
     },
 
     SetChatId(id: number) {

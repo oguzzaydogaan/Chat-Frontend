@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { RouterLink, useRoute, useRouter } from 'vue-router'
+import { RouterLink } from 'vue-router'
 import Navbar from '../components/Navbar.vue'
 import { onMounted, ref } from 'vue'
 import checkAuthorization from '@/assets/js/checkAuthorization'
@@ -35,17 +35,55 @@ function deleteMessageEvent(event: any) {
     chats.value.splice(0, 0, chat)
   }
 }
+function newChatEvent(event: any) {
+  let names = [] as String[]
+  event.detail.Users.forEach((user: any) => {
+    if (user.Id == userId) {
+      return
+    }
+    names.push(user.Name)
+  })
+  let concatName = names.join(', ')
+  chats.value.splice(0, 0, { id: event.detail.Id, name: concatName })
+}
+function newUserToChatEvent(event: any) {
+  let names = [] as String[]
+  event.detail.Users.forEach((user: any) => {
+    if (user.Id == userId) {
+      return
+    }
+    names.push(user.Name)
+  })
+  let concatName = names.join(', ')
+  const index = chats.value.findIndex((c: any) => c.id == event.detail.Id)
+  if (index != -1) {
+    const chat = chats.value[index]
+    chats.value.splice(index, 1)
+    chats.value.splice(0, 0, { id: event.detail.Id, name: concatName })
+  }
+}
 onMounted(async () => {
   await GetChats()
   socket.connect(userId)
+  window.addEventListener('new-chat', newChatEvent)
+  window.addEventListener('new-usertochat', newUserToChatEvent)
   window.addEventListener('new-message', newMessageEvent)
   window.addEventListener('delete-message', deleteMessageEvent)
 })
+
+function addChat(socketMessage: any) {
+  socket.sendMessage(socketMessage)
+}
+function addUserToChat(socketMessage: any) {
+  debugger
+  console.log('UC')
+  socket.sendMessage(socketMessage)
+}
 </script>
 
 <template>
   <main>
-    <Navbar />
+    <Navbar @add-chat="addChat" />
     <h2 class="text-center text-3xl text-gray-800 my-2 font-semibold">Chats</h2>
     <RouterLink
       v-for="chat in chats"

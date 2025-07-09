@@ -30,10 +30,16 @@ export const useSocketStore = defineStore('socket', {
       this.socket.onmessage = async (event: MessageEvent) => {
         try {
           const data = JSON.parse(event.data)
-          if (data.Type === 'Send-Message') {
-            window.dispatchEvent(new CustomEvent('new-message', { detail: data.Payload }))
+          if (data.Type == 'Send-Message') {
+            window.dispatchEvent(new CustomEvent('new-message', { detail: data.Payload.Message }))
           } else if (data.Type == 'Delete-Message') {
-            window.dispatchEvent(new CustomEvent('delete-message', { detail: data.Payload.Id }))
+            window.dispatchEvent(
+              new CustomEvent('delete-message', { detail: data.Payload.Message }),
+            )
+          } else if (data.Type == 'New-Chat') {
+            window.dispatchEvent(new CustomEvent('new-chat', { detail: data.Payload.Chat }))
+          } else if (data.Type == 'New-UserToChat') {
+            window.dispatchEvent(new CustomEvent('new-usertochat', { detail: data.Payload.Chat }))
           }
         } catch (err) {
           console.error('WebSocket mesajı çözümlenemedi:', err)
@@ -71,12 +77,32 @@ export const useSocketStore = defineStore('socket', {
               },
             }),
           )
-        } else {
+        } else if (socketMessage.Type == 'Delete-Message') {
           this.socket.send(
             JSON.stringify({
               Type: 'Delete-Message',
               Payload: {
                 MessageId: socketMessage.Payload.MessageId,
+              },
+            }),
+          )
+        } else if (socketMessage.Type == 'New-Chat') {
+          this.socket.send(
+            JSON.stringify({
+              Type: 'New-Chat',
+              Payload: {
+                UserIds: socketMessage.Payload.UserIds,
+              },
+            }),
+          )
+        } else if (socketMessage.Type == 'New-UserToChat') {
+          debugger
+          this.socket.send(
+            JSON.stringify({
+              Type: 'New-UserToChat',
+              Payload: {
+                UserId: socketMessage.Payload.UserId,
+                ChatId: socketMessage.Payload.ChatId,
               },
             }),
           )

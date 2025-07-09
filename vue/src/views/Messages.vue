@@ -4,7 +4,7 @@ import { onMounted, ref, nextTick } from 'vue'
 import Navbar from '../components/Navbar.vue'
 import checkAuthorization from '@/assets/js/checkAuthorization'
 import { useSocketStore } from '@/stores/socket'
-import Swal from 'sweetalert2'
+import wsSender from '@/assets/js/wsSender'
 
 const route = useRoute()
 const userId = localStorage.getItem('userId')
@@ -28,7 +28,7 @@ async function GetChat() {
   )
   if (!response.ok) {
     if (response.status == 401) {
-      confirm('Oturumun süresi doldu.')
+      alert('Oturumun süresi doldu.')
     }
     window.location.href = '/'
   }
@@ -38,32 +38,42 @@ async function GetChat() {
   messages.value = data.Messages
 }
 
-async function wsSender(socketMessage: any) {
-  if (socketMessage.Type == 'Delete-Message') {
-    Swal.fire({
-      title: 'Are you sure?',
-      text: "You won't be able to revert this!",
-      icon: 'warning',
-      showCancelButton: true,
-      confirmButtonText: 'Yes, delete it!',
-      cancelButtonText: 'No, cancel!',
-      reverseButtons: true,
-      allowOutsideClick: false,
-    }).then((result) => {
-      if (result.isConfirmed) {
-        socket.sendMessage(socketMessage)
-        Swal.fire({
-          title: 'Deleted!',
-          text: 'Your file has been deleted.',
-          icon: 'success',
-        })
-      }
-    })
-  } else {
-    socket.sendMessage(socketMessage)
-    newMessage.value = ''
-  }
-}
+// async function wsSender(socketMessage: any) {
+//   if (socketMessage.Type == 'Delete-Message') {
+//     Swal.fire({
+//       title: 'Are you sure?',
+//       text: "You won't be able to revert this!",
+//       icon: 'warning',
+//       showCancelButton: true,
+//       confirmButtonText: 'Yes, delete it!',
+//       cancelButtonText: 'No, cancel!',
+//       reverseButtons: true,
+//       allowOutsideClick: false,
+//     }).then((result) => {
+//       if (result.isConfirmed) {
+//         socket.sendMessage(socketMessage)
+//         const Toast = Swal.mixin({
+//           toast: true,
+//           position: 'top-end',
+//           showConfirmButton: false,
+//           timer: 2000,
+//           timerProgressBar: true,
+//           didOpen: (toast) => {
+//             toast.onmouseenter = Swal.stopTimer
+//             toast.onmouseleave = Swal.resumeTimer
+//           },
+//         })
+//         Toast.fire({
+//           icon: 'success',
+//           title: 'Message deleted successfully',
+//         })
+//       }
+//     })
+//   } else {
+//     socket.sendMessage(socketMessage)
+//     newMessage.value = ''
+//   }
+// }
 
 function newMessageEvent(event: any) {
   if (event.detail.ChatId == Number(route.params.cid)) {
@@ -71,20 +81,41 @@ function newMessageEvent(event: any) {
   }
 }
 function deleteMessageEvent(event: any) {
-  messages.value = messages.value.filter((m: any) => m.Id != event.detail)
+  if (event.detail.ChatId == Number(route.params.cid)) {
+    messages.value = messages.value.filter((m: any) => m.Id != event.detail.Id)
+  }
+}
+function newUserToChatEvent(event: any) {
+  if (event.detail.Id != Number(route.params.cid)) {
+    return
+  }
+  name.value = ''
+  let names = [] as String[]
+  event.detail.Users.forEach((user: any) => {
+    if (user.Id == userId) {
+      return
+    }
+    names.push(user.Name)
+  })
+  name.value = names.join(', ')
+}
+
+function addUserToChat(socketMessage: any) {
+  socket.sendMessage(socketMessage)
 }
 
 onMounted(async () => {
   await GetChat()
   socket.connect(userId)
   window.addEventListener('new-message', newMessageEvent)
+  window.addEventListener('new-usertochat', newUserToChatEvent)
   window.addEventListener('delete-message', deleteMessageEvent)
 })
 </script>
 
 <template>
   <main class="h-screen flex flex-col justify-between bg-gray-100">
-    <Navbar class="" />
+    <Navbar @add-user-to-chat="addUserToChat" class="" />
     <div class="p-3 bg-blue-200 shadow-md mb-3">
       <h2 class="text-center text-3xl text-gray-700 font-semibold">
         {{ name }}

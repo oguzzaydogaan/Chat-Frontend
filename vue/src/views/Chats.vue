@@ -49,10 +49,9 @@ function newChatEvent(event: any) {
 function newUserToChatEvent(event: any) {
   let names = [] as String[]
   event.detail.Users.forEach((user: any) => {
-    if (user.Id == userId) {
-      return
+    if (user.Id != userId) {
+      names.push(user.Name)
     }
-    names.push(user.Name)
   })
   let concatName = names.join(', ')
   const index = chats.value.findIndex((c: any) => c.id == event.detail.Id)

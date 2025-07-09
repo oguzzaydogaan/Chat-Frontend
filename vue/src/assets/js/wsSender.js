@@ -47,8 +47,7 @@ export default async function wsSender(socketMessage) {
       },
     })
     if (id) {
-      let list = []
-      list = id.split(',').map(Number)
+      let list = id.split(',').map(Number)
       socketMessage.Payload.UserIds = list
       this.addChat(socketMessage)
       const Toast = Swal.mixin({

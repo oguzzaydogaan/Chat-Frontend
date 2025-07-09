@@ -14,8 +14,10 @@
   "dependencies": {
     "bootstrap-icons": "^1.13.1",
     "pinia": "^3.0.1",
+    "sweetalert2": "^11.22.2",
     "vue": "^3.5.13",
-    "vue-router": "^4.5.0"
+    "vue-router": "^4.5.0",
+    "vuetify": "^3.8.12"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.1.10",

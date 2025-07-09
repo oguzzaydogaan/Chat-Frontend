@@ -1,7 +1,8 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import ChatsView from '../views/ChatsView.vue'
-import MessagesView from '../views/MessagesView.vue'
+import Chats from '../views/Chats.vue'
+import Messages from '../views/Messages.vue'
 import Login from '@/views/Login.vue'
+import Register from '@/views/Register.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -12,14 +13,19 @@ const router = createRouter({
       component: Login,
     },
     {
-      path: '/:uid/chats',
-      name: 'chats',
-      component: ChatsView,
+      path: '/register',
+      name: 'register',
+      component: Register,
     },
     {
-      path: '/:uid/chats-:cid/messages',
+      path: '/chats',
+      name: 'chats',
+      component: Chats,
+    },
+    {
+      path: '/messages/:cid',
       name: 'messages',
-      component: MessagesView,
+      component: Messages,
     },
   ],
 })

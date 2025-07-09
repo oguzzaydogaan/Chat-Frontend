@@ -33,47 +33,9 @@ async function GetChat() {
     window.location.href = '/'
   }
   const data = await response.json()
-  console.log(data)
   name.value = data.Name
   messages.value = data.Messages
 }
-
-// async function wsSender(socketMessage: any) {
-//   if (socketMessage.Type == 'Delete-Message') {
-//     Swal.fire({
-//       title: 'Are you sure?',
-//       text: "You won't be able to revert this!",
-//       icon: 'warning',
-//       showCancelButton: true,
-//       confirmButtonText: 'Yes, delete it!',
-//       cancelButtonText: 'No, cancel!',
-//       reverseButtons: true,
-//       allowOutsideClick: false,
-//     }).then((result) => {
-//       if (result.isConfirmed) {
-//         socket.sendMessage(socketMessage)
-//         const Toast = Swal.mixin({
-//           toast: true,
-//           position: 'top-end',
-//           showConfirmButton: false,
-//           timer: 2000,
-//           timerProgressBar: true,
-//           didOpen: (toast) => {
-//             toast.onmouseenter = Swal.stopTimer
-//             toast.onmouseleave = Swal.resumeTimer
-//           },
-//         })
-//         Toast.fire({
-//           icon: 'success',
-//           title: 'Message deleted successfully',
-//         })
-//       }
-//     })
-//   } else {
-//     socket.sendMessage(socketMessage)
-//     newMessage.value = ''
-//   }
-// }
 
 function newMessageEvent(event: any) {
   if (event.detail.ChatId == Number(route.params.cid)) {

@@ -22,7 +22,6 @@ async function handleSignIn() {
     return
   }
   const data = await response.json()
-  console.log(data)
   localStorage.setItem('token', data.token)
   localStorage.setItem('expiresIn', data.expiresIn)
   localStorage.setItem('userId', data.id)
@@ -60,7 +59,7 @@ onMounted(() => {
           Sign in
         </button>
         <RouterLink to="/register" class="text-blue-500 text-sm mt-1 text-center"
-          >Don't have account? Sign Up.</RouterLink
+          >Don't have an account? Sign Up</RouterLink
         >
         <p id="#error" class="text-red-500 text-sm mt-1 text-center"></p>
       </form>

@@ -65,7 +65,7 @@ onMounted(() => {
           Sign in
         </button>
         <RouterLink to="/" class="text-blue-500 text-sm mt-1 text-center"
-          >Already have account? Sign In.</RouterLink
+          >Already have an account? Sign In</RouterLink
         >
         <p id="#error" class="text-red-500 text-sm mt-1 text-center"></p>
       </form>

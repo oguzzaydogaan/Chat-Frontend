@@ -59,8 +59,8 @@ function newUserToChatEvent(event: any) {
   if (index != -1) {
     const chat = chats.value[index]
     chats.value.splice(index, 1)
-    chats.value.splice(0, 0, { id: event.detail.Id, name: concatName })
   }
+  chats.value.splice(0, 0, { id: event.detail.Id, name: concatName })
 }
 onMounted(async () => {
   await GetChats()
@@ -75,8 +75,6 @@ function addChat(socketMessage: any) {
   socket.sendMessage(socketMessage)
 }
 function addUserToChat(socketMessage: any) {
-  debugger
-  console.log('UC')
   socket.sendMessage(socketMessage)
 }
 </script>

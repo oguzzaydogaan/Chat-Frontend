@@ -96,7 +96,6 @@ export const useSocketStore = defineStore('socket', {
             }),
           )
         } else if (socketMessage.Type == 'New-UserToChat') {
-          debugger
           this.socket.send(
             JSON.stringify({
               Type: 'New-UserToChat',

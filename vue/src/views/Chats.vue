@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { RouterLink } from 'vue-router'
 import Navbar from '../components/Navbar.vue'
-import { onMounted, ref } from 'vue'
+import { onMounted, onUnmounted, ref } from 'vue'
 import checkAuthorization from '@/assets/js/checkAuthorization'
 import { useSocketStore } from '@/stores/socket'
 
@@ -26,6 +26,9 @@ function newMessageEvent(event: any) {
     chats.value.splice(index, 1)
     chats.value.splice(0, 0, chat)
   }
+  if (userId != event.detail.Sender.Id) {
+    socket.successToast('New message')
+  }
 }
 function deleteMessageEvent(event: any) {
   const index = chats.value.findIndex((c: any) => c.id == event.detail.ChatId)
@@ -34,17 +37,18 @@ function deleteMessageEvent(event: any) {
     chats.value.splice(index, 1)
     chats.value.splice(0, 0, chat)
   }
+  socket.successToast('Message deleted')
 }
 function newChatEvent(event: any) {
   let names = [] as String[]
   event.detail.Users.forEach((user: any) => {
-    if (user.Id == userId) {
-      return
+    if (user.Id != userId) {
+      names.push(user.Name)
     }
-    names.push(user.Name)
   })
   let concatName = names.join(', ')
   chats.value.splice(0, 0, { id: event.detail.Id, name: concatName })
+  socket.successToast('New chat')
 }
 function newUserToChatEvent(event: any) {
   let names = [] as String[]
@@ -60,6 +64,7 @@ function newUserToChatEvent(event: any) {
     chats.value.splice(index, 1)
   }
   chats.value.splice(0, 0, { id: event.detail.Id, name: concatName })
+  socket.successToast('New user joined')
 }
 onMounted(async () => {
   await GetChats()
@@ -70,10 +75,14 @@ onMounted(async () => {
   window.addEventListener('delete-message', deleteMessageEvent)
 })
 
+onUnmounted(() => {
+  window.removeEventListener('new-chat', newChatEvent)
+  window.removeEventListener('new-usertochat', newUserToChatEvent)
+  window.removeEventListener('new-message', newMessageEvent)
+  window.removeEventListener('delete-message', deleteMessageEvent)
+})
+
 function addChat(socketMessage: any) {
-  socket.sendMessage(socketMessage)
-}
-function addUserToChat(socketMessage: any) {
   socket.sendMessage(socketMessage)
 }
 </script>

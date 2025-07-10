@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useRoute } from 'vue-router'
-import { onMounted, ref, nextTick } from 'vue'
+import { onMounted, ref, nextTick, onUnmounted } from 'vue'
 import Navbar from '../components/Navbar.vue'
 import checkAuthorization from '@/assets/js/checkAuthorization'
 import { useSocketStore } from '@/stores/socket'
@@ -45,6 +45,9 @@ function newMessageEvent(event: any) {
 function deleteMessageEvent(event: any) {
   if (event.detail.ChatId == Number(route.params.cid)) {
     messages.value = messages.value.filter((m: any) => m.Id != event.detail.Id)
+    if (userId == event.detail.Sender.Id) {
+      socket.successToast('Message deleted')
+    }
   }
 }
 function newUserToChatEvent(event: any) {
@@ -54,12 +57,12 @@ function newUserToChatEvent(event: any) {
   name.value = ''
   let names = [] as String[]
   event.detail.Users.forEach((user: any) => {
-    if (user.Id == userId) {
-      return
+    if (user.Id != userId) {
+      names.push(user.Name)
     }
-    names.push(user.Name)
   })
   name.value = names.join(', ')
+  socket.successToast('New user joined')
 }
 
 function addUserToChat(socketMessage: any) {
@@ -72,6 +75,12 @@ onMounted(async () => {
   window.addEventListener('new-message', newMessageEvent)
   window.addEventListener('new-usertochat', newUserToChatEvent)
   window.addEventListener('delete-message', deleteMessageEvent)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('new-usertochat', newUserToChatEvent)
+  window.removeEventListener('new-message', newMessageEvent)
+  window.removeEventListener('delete-message', deleteMessageEvent)
 })
 </script>
 

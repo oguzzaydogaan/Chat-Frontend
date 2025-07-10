@@ -14,21 +14,6 @@ export default async function wsSender(socketMessage) {
     }).then((result) => {
       if (result.isConfirmed) {
         this.socket.sendMessage(socketMessage)
-        const Toast = Swal.mixin({
-          toast: true,
-          position: 'top-end',
-          showConfirmButton: false,
-          timer: 2000,
-          timerProgressBar: true,
-          didOpen: (toast) => {
-            toast.onmouseenter = Swal.stopTimer
-            toast.onmouseleave = Swal.resumeTimer
-          },
-        })
-        Toast.fire({
-          icon: 'success',
-          title: 'Message deleted successfully',
-        })
       }
     })
   } else if (socketMessage.Type == 'Send-Message') {
@@ -50,21 +35,6 @@ export default async function wsSender(socketMessage) {
       let list = id.split(',').map(Number)
       socketMessage.Payload.UserIds = list
       this.addChat(socketMessage)
-      const Toast = Swal.mixin({
-        toast: true,
-        position: 'top-end',
-        showConfirmButton: false,
-        timer: 2000,
-        timerProgressBar: true,
-        didOpen: (toast) => {
-          toast.onmouseenter = Swal.stopTimer
-          toast.onmouseleave = Swal.resumeTimer
-        },
-      })
-      Toast.fire({
-        icon: 'success',
-        title: 'Chat created successfully',
-      })
     }
   } else if (socketMessage.Type == 'New-UserToChat') {
     const { value: id } = await Swal.fire({
@@ -81,21 +51,6 @@ export default async function wsSender(socketMessage) {
     if (id) {
       socketMessage.Payload.UserId = Number(id)
       this.addUserToChat(socketMessage)
-      const Toast = Swal.mixin({
-        toast: true,
-        position: 'top-end',
-        showConfirmButton: false,
-        timer: 2000,
-        timerProgressBar: true,
-        didOpen: (toast) => {
-          toast.onmouseenter = Swal.stopTimer
-          toast.onmouseleave = Swal.resumeTimer
-        },
-      })
-      Toast.fire({
-        icon: 'success',
-        title: 'User added successfully',
-      })
     }
   }
 }

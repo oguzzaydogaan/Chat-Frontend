@@ -1,4 +1,5 @@
 import { defineStore } from 'pinia'
+import Swal from 'sweetalert2'
 
 type Message = {
   Id: number
@@ -40,6 +41,22 @@ export const useSocketStore = defineStore('socket', {
             window.dispatchEvent(new CustomEvent('new-chat', { detail: data.Payload.Chat }))
           } else if (data.Type == 'New-UserToChat') {
             window.dispatchEvent(new CustomEvent('new-usertochat', { detail: data.Payload.Chat }))
+          } else if (data.Type == 'Error') {
+            const Toast = Swal.mixin({
+              toast: true,
+              position: 'top-end',
+              showConfirmButton: false,
+              timer: 2000,
+              timerProgressBar: true,
+              didOpen: (toast) => {
+                toast.onmouseenter = Swal.stopTimer
+                toast.onmouseleave = Swal.resumeTimer
+              },
+            })
+            Toast.fire({
+              icon: 'error',
+              title: data.Payload.Error,
+            })
           }
         } catch (err) {
           console.error('WebSocket mesajı çözümlenemedi:', err)
@@ -55,6 +72,24 @@ export const useSocketStore = defineStore('socket', {
       this.socket.onerror = (event: Event) => {
         console.error('WebSocket hatası:', event)
       }
+    },
+
+    successToast(message: string) {
+      const Toast = Swal.mixin({
+        toast: true,
+        position: 'top-end',
+        showConfirmButton: false,
+        timer: 2000,
+        timerProgressBar: true,
+        didOpen: (toast) => {
+          toast.onmouseenter = Swal.stopTimer
+          toast.onmouseleave = Swal.resumeTimer
+        },
+      })
+      Toast.fire({
+        icon: 'success',
+        title: message,
+      })
     },
 
     disconnect() {

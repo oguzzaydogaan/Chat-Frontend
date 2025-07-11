@@ -2,22 +2,16 @@
 import { RouterLink } from 'vue-router'
 import Navbar from '../components/Navbar.vue'
 import { onMounted, onUnmounted, ref } from 'vue'
-import checkAuthorization from '@/assets/js/checkAuthorization'
 import { useSocketStore } from '@/stores/socket'
+import axios from '@/plugins/axios'
 
 const userId = localStorage.getItem('userId')
 const socket = useSocketStore()
 const chats = ref<any>([])
 async function GetChats() {
-  checkAuthorization()
-  const token = localStorage.getItem('token')
-  const response = await fetch('https://localhost:7193/api/users/' + userId + '/chats', {
-    headers: {
-      Authorization: 'Bearer ' + token!,
-    },
+  axios(`/users/${userId}/chats`).then(function (response) {
+    chats.value = response.data
   })
-  const data = await response.json()
-  chats.value = data
 }
 function newMessageEvent(event: any) {
   const index = chats.value.findIndex((c: any) => c.id == event.detail.ChatId)

@@ -5,6 +5,7 @@ import Navbar from '../components/Navbar.vue'
 import checkAuthorization from '@/assets/js/checkAuthorization'
 import { useSocketStore } from '@/stores/socket'
 import wsSender from '@/assets/js/wsSender'
+import axios from '@/plugins/axios'
 
 const route = useRoute()
 const userId = localStorage.getItem('userId')
@@ -16,25 +17,11 @@ const newMessage = ref('')
 const name = ref('')
 
 async function GetChat() {
-  checkAuthorization()
-  const response = await fetch(
-    'https://localhost:7193/api/chats/' + route.params.cid + '/users/' + userId,
-    {
-      method: 'GET',
-      headers: {
-        Authorization: 'Bearer ' + localStorage.getItem('token')!,
-      },
-    },
-  )
-  if (!response.ok) {
-    if (response.status == 401) {
-      alert('Oturumun süresi doldu.')
-    }
-    window.location.href = '/'
-  }
-  const data = await response.json()
-  name.value = data.Name
-  messages.value = data.Messages
+  axios(`/chats/${route.params.cid}/users/${userId}`).then(function (response) {
+    console.log(response)
+    name.value = response.data.Name
+    messages.value = response.data.Messages
+  })
 }
 
 function newMessageEvent(event: any) {

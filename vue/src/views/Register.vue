@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import axios from '@/plugins/axios'
 import { onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 
@@ -8,22 +9,19 @@ const email = ref('')
 const password = ref('')
 
 async function handleSignUp() {
-  const response = await fetch('https://localhost:7193/api/users/register', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
+  axios
+    .post(`/users/register`, {
       name: name.value,
       email: email.value,
       password: password.value,
-    }),
-  })
-  if (!response.ok) {
-    document.getElementById('#error')!.textContent = 'Bir hata oluştu.'
-    return
-  }
-  router.push('/')
+    })
+    .then(function (response) {
+      router.push('/')
+    })
+    .catch(function (error) {
+      if (error.response.status == 500)
+        document.getElementById('#error')!.textContent = 'An error occured'
+    })
 }
 onMounted(() => {
   if (localStorage.getItem('token')) {

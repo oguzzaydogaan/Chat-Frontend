@@ -2,7 +2,6 @@
 import { useRoute } from 'vue-router'
 import { onMounted, ref, nextTick, onUnmounted } from 'vue'
 import Navbar from '../components/Navbar.vue'
-import checkAuthorization from '@/assets/js/checkAuthorization'
 import { useSocketStore } from '@/stores/socket'
 import wsSender from '@/assets/js/wsSender'
 import axios from '@/plugins/axios'

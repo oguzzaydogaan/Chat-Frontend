@@ -7,15 +7,19 @@ const instance = axios.create({
 
 instance.interceptors.request.use(
   function (config) {
-    const expiresIn = localStorage.getItem('expiresIn')
-    const currentTime = new Date().toISOString()
-    const token = localStorage.getItem('token')
+    if (window.location.pathname != '/' && window.location.pathname != '/register') {
+      const expiresIn = localStorage.getItem('expiresIn')
+      const currentTime = new Date().toISOString()
+      const token = localStorage.getItem('token')
 
-    if (token && expiresIn && new Date(expiresIn) < new Date(currentTime)) {
-      window.location.href = '/'
-      return Promise.reject()
+      if (!token || !expiresIn || new Date(expiresIn) < new Date(currentTime)) {
+        localStorage.clear()
+        alert('Oturum sonlandırıldı.')
+        window.location.href = '/'
+        return Promise.reject()
+      }
+      config.headers.Authorization = `Bearer ${token}`
     }
-    config.headers.Authorization = `Bearer ${token}`
 
     return config
   },
@@ -35,6 +39,7 @@ instance.interceptors.response.use(
     }
     if (error.response.status == 401) {
       localStorage.clear()
+      alert('Oturum sonlandırıldı.')
       window.location.href = '/'
     }
     return Promise.reject()

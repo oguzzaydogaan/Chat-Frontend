@@ -1,31 +1,28 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
+import axios from '@/plugins/axios'
 
 const email = ref('')
 const router = useRouter()
 const password = ref('')
 
 async function handleSignIn() {
-  const response = await fetch('https://localhost:7193/api/users/login', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
+  axios
+    .post('/users/login', {
       email: email.value,
       password: password.value,
-    }),
-  })
-  if (!response.ok) {
-    document.getElementById('#error')!.textContent = 'Invalid username or password'
-    return
-  }
-  const data = await response.json()
-  localStorage.setItem('token', data.token)
-  localStorage.setItem('expiresIn', data.expiresIn)
-  localStorage.setItem('userId', data.id)
-  router.push('/chats')
+    })
+    .then(function (response) {
+      localStorage.setItem('token', response.data.token)
+      localStorage.setItem('expiresIn', response.data.expiresIn)
+      localStorage.setItem('userId', response.data.id)
+      router.push('/chats')
+    })
+    .catch(function (error) {
+      if (error.response.status == 500)
+        document.getElementById('#error')!.textContent = 'Invalid username or password'
+    })
 }
 onMounted(() => {
   if (localStorage.getItem('token')) {

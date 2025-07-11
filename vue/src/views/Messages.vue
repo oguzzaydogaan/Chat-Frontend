@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { useRoute } from 'vue-router'
-import { onMounted, ref, nextTick } from 'vue'
+import { onMounted, ref, nextTick, onUnmounted } from 'vue'
 import Navbar from '../components/Navbar.vue'
-import checkAuthorization from '@/assets/js/checkAuthorization'
 import { useSocketStore } from '@/stores/socket'
 import wsSender from '@/assets/js/wsSender'
+import axios from '@/plugins/axios'
 
 const route = useRoute()
 const userId = localStorage.getItem('userId')
@@ -16,25 +16,11 @@ const newMessage = ref('')
 const name = ref('')
 
 async function GetChat() {
-  checkAuthorization()
-  const response = await fetch(
-    'https://localhost:7193/api/chats/' + route.params.cid + '/users/' + userId,
-    {
-      method: 'GET',
-      headers: {
-        Authorization: 'Bearer ' + localStorage.getItem('token')!,
-      },
-    },
-  )
-  if (!response.ok) {
-    if (response.status == 401) {
-      alert('Oturumun süresi doldu.')
-    }
-    window.location.href = '/'
-  }
-  const data = await response.json()
-  name.value = data.Name
-  messages.value = data.Messages
+  axios(`/chats/${route.params.cid}/users/${userId}`).then(function (response) {
+    console.log(response)
+    name.value = response.data.Name
+    messages.value = response.data.Messages
+  })
 }
 
 function newMessageEvent(event: any) {
@@ -45,6 +31,9 @@ function newMessageEvent(event: any) {
 function deleteMessageEvent(event: any) {
   if (event.detail.ChatId == Number(route.params.cid)) {
     messages.value = messages.value.filter((m: any) => m.Id != event.detail.Id)
+    if (userId == event.detail.Sender.Id) {
+      socket.successToast('Message deleted')
+    }
   }
 }
 function newUserToChatEvent(event: any) {
@@ -54,12 +43,12 @@ function newUserToChatEvent(event: any) {
   name.value = ''
   let names = [] as String[]
   event.detail.Users.forEach((user: any) => {
-    if (user.Id == userId) {
-      return
+    if (user.Id != userId) {
+      names.push(user.Name)
     }
-    names.push(user.Name)
   })
   name.value = names.join(', ')
+  socket.successToast('New user joined')
 }
 
 function addUserToChat(socketMessage: any) {
@@ -72,6 +61,12 @@ onMounted(async () => {
   window.addEventListener('new-message', newMessageEvent)
   window.addEventListener('new-usertochat', newUserToChatEvent)
   window.addEventListener('delete-message', deleteMessageEvent)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('new-usertochat', newUserToChatEvent)
+  window.removeEventListener('new-message', newMessageEvent)
+  window.removeEventListener('delete-message', deleteMessageEvent)
 })
 </script>
 

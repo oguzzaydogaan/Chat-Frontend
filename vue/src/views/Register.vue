@@ -57,7 +57,7 @@ onMounted(() => {
           class="text-gray-600 placeholder-gray-400 bg-gray-200 rounded-md text-center p-1 mt-3 w-full"
           type="password"
           placeholder="Password"
-          pattern="(?=.*\d)(?=.*[\W_]).{6,}"
+          pattern="(?=.*[0-9])(?=.*[A-Za-z])(?=.*\W).{6,}"
           title="Password must be at least 6 characters long and contain at least one number and one special character."
           required
         />

@@ -48,8 +48,10 @@ onMounted(() => {
           @keypress.space.prevent=""
           v-model="password"
           class="text-gray-600 placeholder-gray-400 bg-gray-200 rounded-md text-center p-1 mt-3 w-full"
-          type="text"
+          type="password"
           placeholder="Password"
+          pattern="(?=.*[0-9])(?=.*[A-Za-z])(?=.*[^a-zA-Z0-9]).{6,}"
+          title="Password must be at least 6 characters long and contain at least one number and one special character."
           required
         />
         <button type="submit" class="bg-blue-500 text-white rounded-md p-1 mt-4 text-center w-full">

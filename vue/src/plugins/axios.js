@@ -42,7 +42,7 @@ instance.interceptors.response.use(
       alert('Oturum sonlandırıldı.')
       window.location.href = '/'
     }
-    return Promise.reject()
+    return Promise.reject(error)
   },
 )
 

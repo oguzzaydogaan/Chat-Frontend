@@ -17,7 +17,6 @@ const name = ref('')
 
 async function GetChat() {
   axios(`/chats/${route.params.cid}/users/${userId}`).then(function (response) {
-    console.log(response)
     name.value = response.data.Name
     messages.value = response.data.Messages
   })

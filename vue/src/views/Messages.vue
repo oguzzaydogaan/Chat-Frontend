@@ -110,7 +110,7 @@ onUnmounted(() => {
           })
         "
         v-model="newMessage"
-        class="text-gray-600 placeholder-gray-600 grow bg-gray-200 rounded-md text-center p-2 focus:outline-blue-500"
+        class="text-gray-600 placeholder-gray-600 grow bg-gray-200 rounded-md text-center p-2 focus:border-blue-500 border-0"
         type="text"
         placeholder="Type your message here..."
       />

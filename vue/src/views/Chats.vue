@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { initFlowbite } from 'flowbite'
+import Dropdown from '@/components/Dropdown.vue'
 import { RouterLink } from 'vue-router'
 import Navbar from '../components/Navbar.vue'
 import { onMounted, onUnmounted, ref } from 'vue'
@@ -47,6 +49,7 @@ function newUserToChatEvent(event: any) {
   socket.successToast('New user joined')
 }
 onMounted(async () => {
+  initFlowbite()
   await GetChats()
   socket.connect(userId)
   window.addEventListener('new-chat', newChatEvent)
@@ -70,7 +73,10 @@ function addChat(socketMessage: any) {
 <template>
   <main>
     <Navbar @add-chat="addChat" />
-    <h2 class="text-center text-3xl text-gray-800 my-2 font-semibold">Chats</h2>
+    <div class="flex items-center justify-center px-4 py-2 bg-white shadow-md">
+      <h2 class="text-center text-3xl text-gray-800 font-semibold">Chats</h2>
+      <Dropdown />
+    </div>
     <RouterLink
       v-for="chat in chats"
       :to="`/messages/${chat.id}`"

@@ -37,9 +37,28 @@ export default async function wsSender(socketMessage) {
         return selected
       },
     })
-    if (selectedUsers.length > 1) {
-      socketMessage.Payload.UserIds = selectedUsers
+    if (selectedUsers.length == 2) {
+      socketMessage.Payload.Chat.UserIds = selectedUsers
+      socketMessage.Payload.Chat.Name = ''
       this.addChat(socketMessage)
+    } else if (selectedUsers.length > 2) {
+      debugger
+      const { value: namet } = await Swal.fire({
+        title: 'Add a name for the chat',
+        input: 'text',
+        inputPlaceholder: 'Chat Name',
+        showCancelButton: true,
+        inputValidator: (value) => {
+          if (!value) {
+            return 'You need to write something!'
+          }
+        },
+      })
+      if (namet) {
+        socketMessage.Payload.Chat.Name = namet
+        socketMessage.Payload.Chat.UserIds = selectedUsers
+        this.addChat(socketMessage)
+      }
     } else {
       const Toast = Swal.mixin({
         toast: true,

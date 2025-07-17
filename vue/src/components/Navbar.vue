@@ -27,7 +27,10 @@ const addUserToChat = (message) => {
         wsSender({
           Type: 'New-Chat',
           Payload: {
-            UserIds: [],
+            Chat: {
+              UserIds: [],
+              Name: '',
+            },
           },
         })
       "

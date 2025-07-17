@@ -126,7 +126,7 @@ export const useSocketStore = defineStore('socket', {
             JSON.stringify({
               Type: 'New-Chat',
               Payload: {
-                UserIds: socketMessage.Payload.UserIds,
+                Chat: socketMessage.Payload.Chat,
               },
             }),
           )

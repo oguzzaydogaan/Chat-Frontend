@@ -29,7 +29,11 @@ function newMessageEvent(event: any) {
 }
 function deleteMessageEvent(event: any) {
   if (event.detail.ChatId == Number(route.params.cid)) {
-    messages.value = messages.value.filter((m: any) => m.Id != event.detail.Id)
+    console.log(event.detail)
+    const idx = messages.value.findIndex((m: any) => m.Id == event.detail.Id)
+    if (idx !== -1) {
+      messages.value[idx] = event.detail
+    }
     if (userId == event.detail.Sender.Id) {
       socket.successToast('Message deleted')
     }
@@ -39,14 +43,6 @@ function newUserToChatEvent(event: any) {
   if (event.detail.Id != Number(route.params.cid)) {
     return
   }
-  name.value = ''
-  let names = [] as String[]
-  event.detail.Users.forEach((user: any) => {
-    if (user.Id != userId) {
-      names.push(user.Name)
-    }
-  })
-  name.value = names.join(', ')
   socket.successToast('New user joined')
 }
 

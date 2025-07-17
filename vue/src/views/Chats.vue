@@ -34,30 +34,16 @@ function deleteMessageEvent(event: any) {
   socket.successToast('Message deleted')
 }
 function newChatEvent(event: any) {
-  let names = [] as String[]
-  event.detail.Users.forEach((user: any) => {
-    if (user.Id != userId) {
-      names.push(user.Name)
-    }
-  })
-  let concatName = names.join(', ')
-  chats.value.splice(0, 0, { id: event.detail.Id, name: concatName })
+  chats.value.splice(0, 0, { id: event.detail.Id, name: event.detail.Name })
   socket.successToast('New chat')
 }
 function newUserToChatEvent(event: any) {
-  let names = [] as String[]
-  event.detail.Users.forEach((user: any) => {
-    if (user.Id != userId) {
-      names.push(user.Name)
-    }
-  })
-  let concatName = names.join(', ')
   const index = chats.value.findIndex((c: any) => c.id == event.detail.Id)
   if (index != -1) {
     const chat = chats.value[index]
     chats.value.splice(index, 1)
   }
-  chats.value.splice(0, 0, { id: event.detail.Id, name: concatName })
+  chats.value.splice(0, 0, { id: event.detail.Id, name: event.detail.Name })
   socket.successToast('New user joined')
 }
 onMounted(async () => {

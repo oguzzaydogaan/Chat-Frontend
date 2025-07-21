@@ -1,4 +1,4 @@
-<script setup lang="ts">
+<script setup>
 import { onMounted, ref } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
 import axios from '@/plugins/axios'
@@ -17,11 +17,13 @@ async function handleSignIn() {
       localStorage.setItem('token', response.data.token)
       localStorage.setItem('expiresIn', response.data.expiresIn)
       localStorage.setItem('userId', response.data.id)
+      localStorage.setItem('name', response.data.name)
+      localStorage.setItem('email', response.data.email)
       router.push('/chats')
     })
     .catch(function (error) {
-      if (error.response.status == 500)
-        document.getElementById('#error')!.textContent = 'Invalid username or password'
+      if (error.response.status == 400)
+        document.getElementById('#error').textContent = 'Invalid username or password'
     })
 }
 onMounted(() => {
@@ -33,8 +35,8 @@ onMounted(() => {
 
 <template>
   <main>
-    <section class="bg-gray-50 dark:bg-gray-900">
-      <div class="flex flex-col items-center justify-center px-6 py-8 mx-auto md:h-screen lg:py-0">
+    <section class="bg-gray-200 dark:bg-gray-900">
+      <div class="flex flex-col items-center justify-center px-6 py-8 mx-auto h-screen lg:py-0">
         <a
           href="#"
           class="flex items-center mb-6 text-2xl font-semibold text-gray-900 dark:text-white"
@@ -82,26 +84,13 @@ onMounted(() => {
                   v-model="password"
                   type="password"
                   placeholder="••••••••"
+                  pattern="(?=.*[0-9])(?=.*[A-Za-z])(?=.*[^a-zA-Z0-9]).{6,}"
+                  title="Password must be at least 6 characters long and contain at least one letter, one number and one special character."
                   class="bg-gray-50 border border-gray-300 text-gray-900 rounded-lg focus:ring-blue-600 focus:border-blue-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
                   required
                 />
               </div>
-              <div class="flex items-center justify-between">
-                <div class="flex items-start">
-                  <div class="flex items-center h-5">
-                    <input
-                      id="remember"
-                      aria-describedby="remember"
-                      type="checkbox"
-                      class="w-4 h-4 border border-gray-300 rounded bg-gray-50 focus:ring-3 focus:ring-blue-300 dark:bg-gray-700 dark:border-gray-600 dark:focus:ring-blue-600 dark:ring-offset-gray-800"
-                    />
-                  </div>
-                  <div class="ml-3 text-sm">
-                    <label for="remember" class="text-gray-500 dark:text-gray-300"
-                      >Remember me</label
-                    >
-                  </div>
-                </div>
+              <div class="flex items-center justify-end">
                 <a
                   href="#"
                   class="text-sm font-medium text-blue-600 hover:underline dark:text-blue-500"
@@ -123,6 +112,7 @@ onMounted(() => {
                 >
               </p>
             </form>
+            <p id="#error" class="text-sm text-red-600 dark:text-red-500"></p>
           </div>
         </div>
       </div>

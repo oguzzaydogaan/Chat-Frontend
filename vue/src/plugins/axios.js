@@ -24,7 +24,7 @@ instance.interceptors.request.use(
     return config
   },
   function (error) {
-    alert('Beklenmeyen hata')
+    alert('An error occurred while processing your request.')
     return Promise.reject(error)
   },
 )
@@ -35,12 +35,15 @@ instance.interceptors.response.use(
   },
   function (error) {
     if (!error.response) {
-      alert('Sunucu açık değil.')
+      alert('Server down. Please try again later.')
     }
     if (error.response.status == 401) {
       localStorage.clear()
       alert('Oturum sonlandırıldı.')
       window.location.href = '/'
+    }
+    if (error.response.status == 500) {
+      alert('An error occured. Please try again later.')
     }
     return Promise.reject(error)
   },

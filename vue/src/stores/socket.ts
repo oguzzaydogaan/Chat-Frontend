@@ -96,53 +96,16 @@ export const useSocketStore = defineStore('socket', {
       if (this.socket) {
         this.socket.close()
         this.isConnected = false
+        localStorage.clear()
+        window.location.href = '/'
       }
     },
 
     sendMessage(socketMessage: any) {
       if (this.socket && this.socket.readyState === WebSocket.OPEN) {
-        if (socketMessage.Type == 'Send-Message') {
-          this.socket.send(
-            JSON.stringify({
-              Type: socketMessage.Type,
-              Payload: {
-                UserId: socketMessage.Payload.UserId,
-                ChatId: socketMessage.Payload.ChatId,
-                Content: socketMessage.Payload.Content,
-              },
-            }),
-          )
-        } else if (socketMessage.Type == 'Delete-Message') {
-          this.socket.send(
-            JSON.stringify({
-              Type: 'Delete-Message',
-              Payload: {
-                MessageId: socketMessage.Payload.MessageId,
-              },
-            }),
-          )
-        } else if (socketMessage.Type == 'New-Chat') {
-          this.socket.send(
-            JSON.stringify({
-              Type: 'New-Chat',
-              Payload: {
-                Chat: socketMessage.Payload.Chat,
-              },
-            }),
-          )
-        } else if (socketMessage.Type == 'New-UserToChat') {
-          this.socket.send(
-            JSON.stringify({
-              Type: 'New-UserToChat',
-              Payload: {
-                UserId: socketMessage.Payload.UserId,
-                ChatId: socketMessage.Payload.ChatId,
-              },
-            }),
-          )
-        }
+        this.socket.send(JSON.stringify(socketMessage))
       } else {
-        console.warn('WebSocket açık değil, mesaj gönderilemiyor')
+        alert('WebSocket closed or not connected')
       }
     },
 

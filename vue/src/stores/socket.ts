@@ -1,13 +1,5 @@
+import alerts from '@/assets/js/alerts'
 import { defineStore } from 'pinia'
-import Swal from 'sweetalert2'
-
-type Message = {
-  Id: number
-  Sender: { Id: string; Name: string }
-  ChatId: number
-  Content: string
-  IsDeleted: boolean
-}
 
 export const useSocketStore = defineStore('socket', {
   state: () => ({
@@ -16,7 +8,7 @@ export const useSocketStore = defineStore('socket', {
     chatId: 0,
   }),
   actions: {
-    connect(userId: any) {
+    connect() {
       if (this.socket && this.isConnected) return
 
       this.socket = new WebSocket(
@@ -24,8 +16,8 @@ export const useSocketStore = defineStore('socket', {
       )
 
       this.socket.onopen = () => {
-        console.log('WebSocket bağlantısı kuruldu')
         this.isConnected = true
+        console.log('Opened.')
       }
 
       this.socket.onmessage = async (event: MessageEvent) => {
@@ -42,54 +34,22 @@ export const useSocketStore = defineStore('socket', {
           } else if (data.Type == 'New-UserToChat') {
             window.dispatchEvent(new CustomEvent('new-usertochat', { detail: data.Payload.Chat }))
           } else if (data.Type == 'Error') {
-            const Toast = Swal.mixin({
-              toast: true,
-              position: 'top-end',
-              showConfirmButton: false,
-              timer: 2000,
-              timerProgressBar: true,
-              didOpen: (toast) => {
-                toast.onmouseenter = Swal.stopTimer
-                toast.onmouseleave = Swal.resumeTimer
-              },
-            })
-            Toast.fire({
-              icon: 'error',
-              title: data.Payload.Error,
-            })
+            await alerts.errorToast(data.Payload.Error)
           }
         } catch (err) {
-          console.error('WebSocket mesajı çözümlenemedi:', err)
+          alerts.errorAlert('WebSocket error')
         }
       }
 
-      this.socket.onclose = (event) => {
+      this.socket.onclose = async () => {
         this.socket = null
-        console.log(event.reason)
         this.isConnected = false
+        console.error('WebSocket connection closed.')
       }
 
-      this.socket.onerror = (event: Event) => {
-        console.error('WebSocket hatası:', event)
+      this.socket.onerror = () => {
+        console.error('WebSocket error occurred.')
       }
-    },
-
-    successToast(message: string) {
-      const Toast = Swal.mixin({
-        toast: true,
-        position: 'top-end',
-        showConfirmButton: false,
-        timer: 2000,
-        timerProgressBar: true,
-        didOpen: (toast) => {
-          toast.onmouseenter = Swal.stopTimer
-          toast.onmouseleave = Swal.resumeTimer
-        },
-      })
-      Toast.fire({
-        icon: 'success',
-        title: message,
-      })
     },
 
     disconnect() {

@@ -5,6 +5,7 @@ import { onMounted, onUnmounted, ref } from 'vue'
 import { useSocketStore } from '@/stores/socket'
 import axios from '@/plugins/axios'
 import Multiselect from 'vue-multiselect'
+import alerts from '@/assets/js/alerts'
 
 const userId = localStorage.getItem('userId')
 const uname = localStorage.getItem('name')
@@ -22,9 +23,9 @@ async function GetChats() {
   })
 }
 
-function Search(query) {
+async function Search(query) {
   if (!query) {
-    GetChats()
+    await GetChats()
     return
   }
   query = query.toLowerCase()
@@ -33,7 +34,7 @@ function Search(query) {
   })
 }
 
-function newMessageEvent(event) {
+async function newMessageEvent(event) {
   if (searchQuery.value != '') {
     return
   }
@@ -44,11 +45,11 @@ function newMessageEvent(event) {
     chats.value.splice(0, 0, chat)
   }
   if (userId != event.detail.Sender.Id) {
-    socket.successToast('New message')
+    await alerts.successToast('New message received')
   }
 }
 
-function deleteMessageEvent(event) {
+async function deleteMessageEvent(event) {
   if (searchQuery.value != '') {
     return
   }
@@ -58,10 +59,10 @@ function deleteMessageEvent(event) {
     chats.value.splice(index, 1)
     chats.value.splice(0, 0, chat)
   }
-  socket.successToast('Message deleted')
+  await alerts.successToast('Message deleted')
 }
 
-function newChatEvent(event) {
+async function newChatEvent(event) {
   if (searchQuery.value != '') {
     return
   }
@@ -75,10 +76,10 @@ function newChatEvent(event) {
   }
 
   chats.value.splice(0, 0, { id: event.detail.Id, name: name })
-  socket.successToast('New chat')
+  await alerts.successToast('New chat created')
 }
 
-function newUserToChatEvent(event) {
+async function newUserToChatEvent(event) {
   if (searchQuery.value != '') {
     return
   }
@@ -87,7 +88,7 @@ function newUserToChatEvent(event) {
     chats.value.splice(index, 1)
   }
   chats.value.splice(0, 0, { id: event.detail.Id, name: event.detail.Name })
-  socket.successToast('New user joined')
+  await alerts.successToast('New user joined the chat')
 }
 
 async function multiselectGetUsers() {
@@ -140,7 +141,7 @@ onMounted(async () => {
   initDropdowns()
   initModals()
   await GetChats()
-  socket.connect(userId)
+  socket.connect()
   window.addEventListener('new-chat', newChatEvent)
   window.addEventListener('new-usertochat', newUserToChatEvent)
   window.addEventListener('new-message', newMessageEvent)

@@ -3,6 +3,7 @@ import { RouterLink, useRoute } from 'vue-router'
 import { initModals } from 'flowbite'
 import { onMounted, ref, onUnmounted } from 'vue'
 import { useSocketStore } from '@/stores/socket'
+import alerts from '@/assets/js/alerts'
 import axios from '@/plugins/axios'
 import Multiselect from 'vue-multiselect'
 
@@ -33,7 +34,7 @@ async function newMessageEvent(event) {
     messages.value.push(event.detail)
   }
 }
-function deleteMessageEvent(event) {
+async function deleteMessageEvent(event) {
   if (event.detail.ChatId == Number(route.params.cid)) {
     console.log(event.detail)
     const idx = messages.value.findIndex((m) => m.Id == event.detail.Id)
@@ -41,15 +42,15 @@ function deleteMessageEvent(event) {
       messages.value[idx] = event.detail
     }
     if (userId == event.detail.Sender.Id) {
-      socket.successToast('Message deleted')
+      await alerts.successToast('Message deleted')
     }
   }
 }
-function newUserToChatEvent(event) {
+async function newUserToChatEvent(event) {
   if (event.detail.Id != Number(route.params.cid)) {
     return
   }
-  socket.successToast('New user joined')
+  await alerts.successToast('New user joined')
 }
 
 async function multiselectGetUsers() {
@@ -126,7 +127,7 @@ function getMessageTime(time) {
 onMounted(async () => {
   initModals()
   await GetChat()
-  socket.connect(userId)
+  socket.connect()
   window.addEventListener('new-message', newMessageEvent)
   window.addEventListener('new-usertochat', newUserToChatEvent)
   window.addEventListener('delete-message', deleteMessageEvent)

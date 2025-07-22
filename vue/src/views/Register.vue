@@ -1,6 +1,6 @@
 <script setup>
+import alerts from '@/assets/js/alerts'
 import axios from '@/plugins/axios'
-import Swal from 'sweetalert2'
 import { onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 
@@ -17,13 +17,7 @@ async function handleSignUp() {
       password: password.value,
     })
     .then(function () {
-      Swal.fire({
-        icon: 'success',
-        title: 'Registration successful',
-        text: 'You can now log in with your new account.',
-        timer: 2000,
-        showConfirmButton: false,
-      })
+      alerts.successAlert('Registration successful. You can now log in.')
       router.push('/')
     })
     .catch(function (error) {

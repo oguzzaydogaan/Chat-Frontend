@@ -1,3 +1,4 @@
+import alerts from '@/assets/js/alerts'
 import axios from 'axios'
 
 const instance = axios.create({
@@ -6,7 +7,7 @@ const instance = axios.create({
 })
 
 instance.interceptors.request.use(
-  function (config) {
+  async function (config) {
     if (window.location.pathname != '/' && window.location.pathname != '/register') {
       const expiresIn = localStorage.getItem('expiresIn')
       const currentTime = new Date().toISOString()
@@ -14,7 +15,7 @@ instance.interceptors.request.use(
 
       if (!token || !expiresIn || new Date(expiresIn) < new Date(currentTime)) {
         localStorage.clear()
-        alert('Oturum sonlandırıldı.')
+        await alerts.errorAlert('Session expired. Please log in again.')
         window.location.href = '/'
         return Promise.reject()
       }
@@ -23,8 +24,8 @@ instance.interceptors.request.use(
 
     return config
   },
-  function (error) {
-    alert('An error occurred while processing your request.')
+  async function (error) {
+    await alerts.errorAlert('Request error. Please try again.')
     return Promise.reject(error)
   },
 )
@@ -33,17 +34,19 @@ instance.interceptors.response.use(
   function (config) {
     return config
   },
-  function (error) {
+  async function (error) {
     if (!error.response) {
-      alert('Server down. Please try again later.')
-    }
-    if (error.response.status == 401) {
+      await alerts.errorAlert('Network error. Please check your connection.')
+    } else if (error.response.status == 400) {
+      await alerts.errorAlert(error.response.data.message || 'Bad request. Please try again.')
+    } else if (error.response.status == 404) {
+      await alerts.errorAlert(error.response.data.message || 'Resource not found.')
+    } else if (error.response.status == 401) {
       localStorage.clear()
-      alert('Oturum sonlandırıldı.')
+      await alerts.errorAlert('Session expired. Please log in again.')
       window.location.href = '/'
-    }
-    if (error.response.status == 500) {
-      alert('An error occured. Please try again later.')
+    } else if (error.response.status == 500) {
+      await alerts.errorAlert('Internal server error. Please try again later.')
     }
     return Promise.reject(error)
   },

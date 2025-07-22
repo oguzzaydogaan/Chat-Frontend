@@ -20,7 +20,7 @@ export const useSocketStore = defineStore('socket', {
       if (this.socket && this.isConnected) return
 
       this.socket = new WebSocket(
-        `wss://localhost:7193/ws/message?accessToken=${localStorage.getItem('token')}`,
+        `wss://${import.meta.env.VITE_BACKEND_URL}/ws/message?accessToken=${localStorage.getItem('token')}`,
       )
 
       this.socket.onopen = () => {

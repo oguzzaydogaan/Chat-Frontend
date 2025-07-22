@@ -1,5 +1,6 @@
 <script setup>
 import axios from '@/plugins/axios'
+import Swal from 'sweetalert2'
 import { onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 
@@ -15,7 +16,14 @@ async function handleSignUp() {
       email: email.value,
       password: password.value,
     })
-    .then(function (response) {
+    .then(function () {
+      Swal.fire({
+        icon: 'success',
+        title: 'Registration successful',
+        text: 'You can now log in with your new account.',
+        timer: 2000,
+        showConfirmButton: false,
+      })
       router.push('/')
     })
     .catch(function (error) {
@@ -39,12 +47,8 @@ onMounted(() => {
           href="#"
           class="flex items-center mb-6 text-2xl font-semibold text-gray-900 dark:text-white"
         >
-          <img
-            class="w-8 h-8 mr-2"
-            src="https://flowbite.s3.amazonaws.com/blocks/marketing-ui/logo.svg"
-            alt="logo"
-          />
-          Flowbite
+          <img class="w-8 h-8 mr-2" src="../assets/img/logo.png" alt="logo" />
+          Vue Chat
         </a>
         <div
           class="w-full bg-white rounded-lg shadow dark:border md:mt-0 sm:max-w-md xl:p-0 dark:bg-gray-800 dark:border-gray-700"
@@ -66,7 +70,7 @@ onMounted(() => {
                   @keypress.space.prevent=""
                   v-model="name"
                   type="text"
-                  class="bg-gray-50 border border-gray-300 text-gray-900 rounded-lg focus:ring-blue-600 focus:border-blue-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+                  class="bg-gray-50 border border-gray-300 text-gray-900 rounded-lg focus:ring-green-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-green-500 dark:focus:border-green-500"
                   placeholder="John Doe"
                   required
                 />
@@ -81,7 +85,7 @@ onMounted(() => {
                   @keypress.space.prevent=""
                   v-model="email"
                   type="email"
-                  class="bg-gray-50 border border-gray-300 text-gray-900 rounded-lg focus:ring-blue-600 focus:border-blue-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+                  class="bg-gray-50 border border-gray-300 text-gray-900 rounded-lg focus:ring-green-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-green-500 dark:focus:border-green-500"
                   placeholder="name@company.com"
                   required
                 />
@@ -99,13 +103,13 @@ onMounted(() => {
                   placeholder="••••••••"
                   pattern="(?=.*[0-9])(?=.*[A-Za-z])(?=.*[^a-zA-Z0-9]).{6,}"
                   title="Password must be at least 6 characters long and contain at least one letter, one number and one special character."
-                  class="bg-gray-50 border border-gray-300 text-gray-900 rounded-lg focus:ring-blue-600 focus:border-blue-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+                  class="bg-gray-50 border border-gray-300 text-gray-900 rounded-lg focus:ring-green-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-green-500 dark:focus:border-green-500"
                   required
                 />
               </div>
               <button
                 type="submit"
-                class="w-full text-white bg-blue-600 hover:bg-blue-700 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800"
+                class="w-full text-white bg-green-500 hover:bg-green-600 focus:ring-4 focus:outline-none focus:ring-green-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-green-600 dark:hover:bg-green-700 dark:focus:ring-green-800"
               >
                 Sign up
               </button>
@@ -113,7 +117,7 @@ onMounted(() => {
                 Already have an account?
                 <RouterLink
                   to="/"
-                  class="font-medium text-blue-600 hover:underline dark:text-blue-500"
+                  class="font-medium text-green-600 hover:underline dark:text-green-500"
                   >Sign in</RouterLink
                 >
               </p>

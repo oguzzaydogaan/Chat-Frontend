@@ -4,7 +4,6 @@ import { RouterLink } from 'vue-router'
 import { onMounted, onUnmounted, ref } from 'vue'
 import { useSocketStore } from '@/stores/socket'
 import axios from '@/plugins/axios'
-import Swal from 'sweetalert2'
 import Multiselect from 'vue-multiselect'
 
 const userId = localStorage.getItem('userId')
@@ -91,7 +90,8 @@ function newUserToChatEvent(event) {
   socket.successToast('New user joined')
 }
 
-async function addGroupChatModal() {
+async function multiselectGetUsers() {
+  document.getElementById('add-chat-dropdown').classList.add('hidden')
   var users = await axios.get('/users')
   users.data = users.data.filter((user) => user.id != userId)
   multiselectSelected.value = []
@@ -99,6 +99,7 @@ async function addGroupChatModal() {
     id: user.id,
     name: user.name,
   }))
+  chatName.value = ''
 }
 
 async function addGroupChat() {
@@ -114,34 +115,10 @@ async function addGroupChat() {
     },
   }
   socket.sendMessage(socketMessage)
-  chatName.value = ''
-  multiselectSelected.value = []
-  multiselectOptions.value = []
-  const modal = document.getElementById('add-group-chat-modal')
-  if (modal) {
-    modal.classList.add('hidden')
-  }
 }
 
 async function addPersonalChat() {
-  const users = await axios.get('/users')
-  users.data = users.data.filter((user) => user.id != userId)
-  const { value: selectedUser } = await Swal.fire({
-    title: 'Select a user to chat with',
-    input: 'select',
-    inputPlaceholder: 'Select a user',
-    inputOptions: users.data.reduce((options, user) => {
-      options[user.id] = user.name
-      return options
-    }, {}),
-    confirmButtonText: 'OK',
-    showCancelButton: true,
-    inputValidator: (value) => {
-      if (!value) {
-        return 'You need to select a user!'
-      }
-    },
-  })
+  const selectedUser = multiselectSelected.value.id
   if (selectedUser) {
     const socketMessage = {
       Type: 'New-Chat',
@@ -155,11 +132,13 @@ async function addPersonalChat() {
   }
 }
 
+function removeFocus() {
+  document.activeElement.blur()
+}
+
 onMounted(async () => {
   initDropdowns()
   initModals()
-  multiselectSelected.value = []
-  multiselectOptions.value = []
   await GetChats()
   socket.connect(userId)
   window.addEventListener('new-chat', newChatEvent)
@@ -186,7 +165,7 @@ onUnmounted(() => {
         <div class="flex items-center md:order-2 space-x-3 md:space-x-0 rtl:space-x-reverse">
           <button
             type="button"
-            class="flex text-sm bg-gray-800 rounded-full me-0 focus:ring-4 focus:ring-gray-300 dark:focus:ring-gray-600"
+            class="flex hover:scale-105 text-sm bg-gray-800 rounded-full me-0 focus:ring-4 focus:ring-gray-300 dark:focus:ring-gray-600"
             id="user-menu-button"
             aria-expanded="false"
             data-dropdown-toggle="user-dropdown"
@@ -244,9 +223,9 @@ onUnmounted(() => {
           v-model="searchQuery"
           type="search"
           id="simple-search"
-          class="bg-gray-200 border-0 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full ps-8 p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+          class="bg-gray-200 border-0 text-gray-900 text-sm rounded-lg focus:ring-green-500 block w-full ps-8 p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
           placeholder="Search chat name..."
-          required
+          :disabled="chats.length < 1 && searchQuery.length < 1"
         />
       </div>
 
@@ -254,11 +233,12 @@ onUnmounted(() => {
         type="button"
         class="flex h-fit text-sm rounded-full ms-1"
         id="add-chat-button"
-        aria-expanded="false"
+        aria-expanded="true"
         data-dropdown-toggle="add-chat-dropdown"
-        data-dropdown-placement="right"
       >
-        <span class="material-symbols-outlined text-green-500" style="font-size: 30px"
+        <span
+          class="material-symbols-outlined text-green-500 hover:text-green-600"
+          style="font-size: 30px"
           >add_circle</span
         >
       </button>
@@ -270,7 +250,9 @@ onUnmounted(() => {
         <ul class="" aria-labelledby="user-menu-button">
           <li>
             <button
-              @click="addPersonalChat()"
+              @click="multiselectGetUsers()"
+              data-modal-target="add-personal-chat-modal"
+              data-modal-toggle="add-personal-chat-modal"
               class="block rounded-t-lg w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 dark:text-gray-200 dark:hover:text-white"
             >
               Personal Chat
@@ -278,7 +260,7 @@ onUnmounted(() => {
           </li>
           <li>
             <button
-              @click="addGroupChatModal()"
+              @click="multiselectGetUsers()"
               data-modal-target="add-group-chat-modal"
               data-modal-toggle="add-group-chat-modal"
               class="block rounded-b-lg w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 dark:text-gray-200 dark:hover:text-white"
@@ -293,23 +275,53 @@ onUnmounted(() => {
     <RouterLink
       v-for="chat in chats"
       :to="`/messages/${chat.id}`"
-      class="block border-b-1 border-gray-300 p-4"
+      class="block border-b-1 border-gray-300 p-4 hover:bg-green-100"
     >
       <div class="font-bold">
         {{ chat.name }}
       </div>
     </RouterLink>
 
-    <div
-      id="add-group-chat-modal"
-      class="fixed inset-0 z-51 bg-black p-4 space-x-2 hidden"
-      style="background-color: rgba(0, 0, 0, 0.5)"
-    >
+    <div v-if="chats.length < 1" class="text-center text-gray-500 p-4">No chats found.</div>
+
+    <div id="add-personal-chat-modal" class="fixed inset-0 z-50 p-4 hidden">
       <div class="bg-white rounded-lg p-3 space-y-4 w-full flex flex-col max-w-md mx-auto">
         <button
-          type="button"
+          @focus="removeFocus()"
+          data-modal-hide="add-personal-chat-modal"
+          class="text-gray-500 hover:text-gray-700 w-fit ms-auto h-6 hover:scale-110"
+        >
+          <span class="material-symbols-outlined text-red-500"> close </span>
+        </button>
+        <form @submit.prevent="addPersonalChat()" class="space-y-4">
+          <multiselect
+            v-model="multiselectSelected"
+            :options="multiselectOptions"
+            :multiple="false"
+            :searchable="true"
+            label="name"
+            track-by="id"
+            placeholder="Choose a user"
+          />
+          <button
+            @focus="removeFocus()"
+            type="submit"
+            data-modal-hide="add-personal-chat-modal"
+            class="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 w-full disabled:opacity-50"
+            :disabled="multiselectSelected.length < 1"
+          >
+            Create Chat
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <div id="add-group-chat-modal" class="fixed inset-0 z-50 p-4 space-x-2 hidden">
+      <div class="bg-white rounded-lg p-3 space-y-4 w-full flex flex-col max-w-md mx-auto">
+        <button
+          @focus="removeFocus()"
           data-modal-hide="add-group-chat-modal"
-          class="text-gray-500 hover:text-gray-700 w-fit ms-auto h-6"
+          class="text-gray-500 hover:text-gray-700 w-fit ms-auto h-6 hover:scale-110"
         >
           <span class="material-symbols-outlined text-red-500"> close </span>
         </button>
@@ -331,8 +343,10 @@ onUnmounted(() => {
             placeholder="Choose min two users"
           />
           <button
+            @focus="removeFocus()"
             type="submit"
-            class="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 w-full"
+            data-modal-hide="add-group-chat-modal"
+            class="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 w-full disabled:opacity-50"
             :disabled="multiselectSelected.length < 2"
           >
             Create Group

@@ -1,9 +1,10 @@
 <script setup>
 import { RouterLink, useRoute } from 'vue-router'
-import { onMounted, ref, onUnmounted, nextTick } from 'vue'
+import { initModals } from 'flowbite'
+import { onMounted, ref, onUnmounted } from 'vue'
 import { useSocketStore } from '@/stores/socket'
 import axios from '@/plugins/axios'
-import Swal from 'sweetalert2'
+import Multiselect from 'vue-multiselect'
 
 const route = useRoute()
 const userId = localStorage.getItem('userId')
@@ -13,6 +14,8 @@ const messages = ref()
 socket.SetChatId(Number(route.params.cid))
 const newMessage = ref()
 const name = ref()
+const multiselectSelected = ref([])
+const multiselectOptions = ref([])
 
 async function GetChat() {
   axios(`/chats/${route.params.cid}/users/${userId}`)
@@ -49,25 +52,18 @@ function newUserToChatEvent(event) {
   socket.successToast('New user joined')
 }
 
-async function addUserToChat() {
-  const users = await axios.get('/users')
+async function multiselectGetUsers() {
+  var users = await axios.get('/users')
   users.data = users.data.filter((user) => user.id != userId)
-  const { value: selectedUser } = await Swal.fire({
-    title: 'Select a user to add to the chat',
-    input: 'select',
-    inputPlaceholder: 'Select a user',
-    inputOptions: users.data.reduce((options, user) => {
-      options[user.id] = user.name
-      return options
-    }, {}),
-    confirmButtonText: 'OK',
-    showCancelButton: true,
-    inputValidator: (value) => {
-      if (!value) {
-        return 'You need to select a user!'
-      }
-    },
-  })
+  multiselectOptions.value = users.data.map((user) => ({
+    id: user.id,
+    name: user.name,
+  }))
+  multiselectSelected.value = []
+}
+
+async function addUserToChat() {
+  const selectedUser = multiselectSelected.value.id
   if (selectedUser) {
     const socketMessage = {
       Type: 'New-UserToChat',
@@ -78,6 +74,10 @@ async function addUserToChat() {
     }
     socket.sendMessage(socketMessage)
   }
+}
+
+function removeFocus() {
+  document.activeElement.blur()
 }
 
 async function sendMessage() {
@@ -124,6 +124,7 @@ function getMessageTime(time) {
 }
 
 onMounted(async () => {
+  initModals()
   await GetChat()
   socket.connect(userId)
   window.addEventListener('new-message', newMessageEvent)
@@ -142,14 +143,57 @@ onUnmounted(() => {
   <main class="h-screen flex flex-col justify-between bg-gray-100">
     <nav class="">
       <div class="flex flex-wrap items-center justify-between mx-auto p-4">
-        <RouterLink to="/" class="flex items-center">
+        <RouterLink to="/" class="flex items-center hover:scale-110">
           <span class="material-symbols-outlined"> arrow_back_ios_new </span></RouterLink
         >
 
-        <span class="text-2xl font-semibold whitespace-nowrap dark:text-white">{{ name }}</span>
-        <button class="flex items-center" @click="addUserToChat">
-          <span class="material-symbols-outlined text-green-500">add_circle</span>
+        <span class="text-2xl font-semibold whitespace-nowrap dark:text-white hover:scale-110">{{
+          name
+        }}</span>
+        <button
+          class="flex items-center hover:scale-110"
+          @click="multiselectGetUsers()"
+          data-modal-target="add-user-modal"
+          data-modal-toggle="add-user-modal"
+        >
+          <span class="material-symbols-outlined text-green-500 hover:text-green-600"
+            >add_circle</span
+          >
         </button>
+        <div
+          id="add-user-modal"
+          class="hidden overflow-y-auto overflow-x-hidden fixed z-50 inset-0 p-4"
+        >
+          <div class="bg-white rounded-lg p-3 space-y-4 w-full flex flex-col max-w-md mx-auto">
+            <button
+              data-modal-hide="add-user-modal"
+              class="w-fit ms-auto h-6 hover:scale-110"
+              @focus="removeFocus()"
+            >
+              <span class="material-symbols-outlined text-red-500 hover:text-red-600"> close </span>
+            </button>
+            <form @submit.prevent="addUserToChat()" class="space-y-4">
+              <multiselect
+                v-model="multiselectSelected"
+                :options="multiselectOptions"
+                :multiple="false"
+                :searchable="true"
+                label="name"
+                track-by="id"
+                placeholder="Choose a user"
+              />
+              <button
+                @focus="removeFocus()"
+                type="submit"
+                data-modal-hide="add-user-modal"
+                class="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 w-full disabled:opacity-50"
+                :disabled="multiselectSelected.length < 1"
+              >
+                Add User
+              </button>
+            </form>
+          </div>
+        </div>
       </div>
     </nav>
     <div class="grow overflow-y-auto bg-gray-200">
@@ -180,10 +224,12 @@ onUnmounted(() => {
           <div v-if="message.Sender.Id == userId" class="flex items-start gap-2.5 justify-self-end">
             <button
               v-if="!message.IsDeleted"
-              class="flex items-center -mr-2"
+              class="flex items-center -mr-2 hover:scale-110"
               @click="deleteMessage(message.Id)"
             >
-              <span class="material-symbols-outlined text-red-500" style="font-size: 20px"
+              <span
+                class="material-symbols-outlined text-red-500 hover:text-red-600"
+                style="font-size: 20px"
                 >delete</span
               >
             </button>
@@ -216,7 +262,7 @@ onUnmounted(() => {
     >
       <input
         v-model="newMessage"
-        class="text-gray-900 placeholder-gray-500 grow bg-gray-200 rounded-full p-2 px-3 focus:border-blue-500 border-0"
+        class="text-gray-900 placeholder-gray-500 grow bg-gray-200 rounded-full p-2 px-3 focus:ring-green-500 border-0"
         type="text"
         placeholder="Type your message here..."
       />

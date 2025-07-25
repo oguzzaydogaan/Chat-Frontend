@@ -3,12 +3,12 @@ import { RouterLink, useRoute } from 'vue-router'
 import { initModals } from 'flowbite'
 import { onMounted, ref, onUnmounted, nextTick } from 'vue'
 import { useSocketStore } from '@/stores/socket'
-import alerts from '@/assets/js/alerts'
 import axios from '@/plugins/axios'
 import Multiselect from 'vue-multiselect'
 
 const route = useRoute()
 const userId = localStorage.getItem('userId')
+const userName = localStorage.getItem('name')
 const socket = useSocketStore()
 const scrollHere = ref()
 const messages = ref()
@@ -16,7 +16,7 @@ const messagesWithDates = ref({})
 const users = ref([])
 socket.SetChatId(Number(route.params.cid))
 const newMessage = ref()
-const name = ref()
+const name = ref('')
 const multiselectSelected = ref([])
 const multiselectOptions = ref([])
 const isLoading = ref(false)
@@ -68,7 +68,6 @@ async function GetChat() {
 
     messagesWithDates.value[key].push(message)
   })
-  console.log(messagesWithDates.value)
   await nextTick()
   scrollHere.value.scrollIntoView({ behavior: 'smooth' })
 }
@@ -91,15 +90,21 @@ async function onDeleteMessage(event) {
   }
 }
 async function onUserJoin(event) {
-  if (event.detail.Id != Number(route.params.cid)) {
+  if (event.detail.Payload.Chat.Id != Number(route.params.cid)) {
     return
   }
-  await alerts.successToast('New user joined')
+  if (!messagesWithDates.value['Today']) {
+    messagesWithDates.value['Today'] = []
+  }
+  messagesWithDates.value['Today'].push(event.detail.Payload.Message)
+  users.value = event.detail.Payload.Chat.Users
 }
 
 async function multiselectGetUsers() {
   var allUsers = await axios.get('/users')
-  allUsers.data = allUsers.data.filter((user) => user.id != userId)
+  allUsers.data = allUsers.data.filter(
+    (user) => user.id != userId && !users.value.some((u) => u.Id == user.id),
+  )
   multiselectOptions.value = allUsers.data.map((user) => ({
     id: user.id,
     name: user.name,
@@ -107,15 +112,16 @@ async function multiselectGetUsers() {
   multiselectSelected.value = []
 }
 
-async function addUserToChat() {
+async function addUser() {
   const selectedUser = multiselectSelected.value.id
   if (selectedUser) {
     const socketMessage = {
-      Type: 'New-UserToChat',
+      Type: 'User-Join',
       Payload: {
         UserId: Number(selectedUser),
         ChatId: Number(route.params.cid),
       },
+      Sender: { Id: Number(userId), Name: userName },
     }
     socket.sendMessage(socketMessage)
   }
@@ -126,7 +132,7 @@ function removeFocus() {
 }
 
 async function sendMessage() {
-  if (!newMessage.value.trim()) {
+  if (!newMessage.value || !newMessage.value.trim()) {
     newMessage.value = ''
     return
   }
@@ -195,9 +201,11 @@ onUnmounted(() => {
         <span class="material-symbols-outlined"> arrow_back_ios_new </span></RouterLink
       >
 
-      <span class="text-2xl font-semibold whitespace-nowrap dark:text-white hover:scale-110">{{
-        name
-      }}</span>
+      <RouterLink
+        :to="`/info/${route.params.cid}`"
+        class="text-2xl font-semibold whitespace-nowrap dark:text-white hover:scale-110"
+        >{{ name }}</RouterLink
+      >
       <button
         v-if="users.length > 2"
         class="flex items-center hover:scale-110"
@@ -223,7 +231,7 @@ onUnmounted(() => {
           >
             <span class="material-symbols-outlined text-red-500 hover:text-red-600"> close </span>
           </button>
-          <form @submit.prevent="addUserToChat()" class="space-y-4">
+          <form @submit.prevent="addUser()" class="space-y-4">
             <multiselect
               name="multi-user"
               v-model="multiselectSelected"
@@ -250,7 +258,7 @@ onUnmounted(() => {
       <div v-if="users.length <= 2" class="w-[24px]"></div>
     </nav>
 
-    <div class="grow pt-2 overflow-y-auto bg-gray-100" style="scrollbar-gutter: stable">
+    <div class="grow pt-2 overflow-y-auto bg-gray-100">
       <div v-for="(messages, key) in messagesWithDates" :key="key" :customname="key">
         <p
           class="sticky top-0 text-center w-fit mx-auto px-2 py-0.5 rounded-full bg-gray-400 shadow-lg text-sm font-bold text-white"
@@ -259,7 +267,16 @@ onUnmounted(() => {
         </p>
         <div class="px-3 py-2 space-y-3">
           <div v-for="message in messages" :key="message" :id="`${message.Id}`">
-            <div v-if="message.Sender.Id != userId" class="flex items-start gap-2.5">
+            <div
+              v-if="message.IsSystem"
+              class="text-center text-xs w-fit justify-self-center bg-amber-100 px-2 rounded-full text-gray-500 shadow-sm"
+            >
+              {{ message.Content }}
+            </div>
+            <div
+              v-if="message.Sender.Id != userId && !message.IsSystem"
+              class="flex items-start gap-2.5"
+            >
               <img
                 class="w-8 h-8 rounded-full"
                 src="https://static.vecteezy.com/system/resources/previews/009/292/244/non_2x/default-avatar-icon-of-social-media-user-vector.jpg"
@@ -282,7 +299,7 @@ onUnmounted(() => {
               </div>
             </div>
             <div
-              v-if="message.Sender.Id == userId"
+              v-if="message.Sender.Id == userId && !message.IsSystem"
               class="flex items-start gap-2.5 justify-self-end"
             >
               <div

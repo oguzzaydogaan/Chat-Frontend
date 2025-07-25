@@ -69,19 +69,30 @@ async function onDeleteMessage(event) {
 }
 
 async function onNewChat(event) {
-  router.push(`/messages/${event.detail.Id}`)
-  await alerts.successToast('New chat created', 'top', 1000)
+  console.log(event)
+  if (event.detail.Sender.Id == Number(userId)) {
+    router.push(`/messages/${event.detail.Payload.Chat.Id}`)
+  } else {
+    chats.value.splice(0, 0, {
+      id: event.detail.Payload.Chat.Id,
+      name: event.detail.Payload.Chat.Name,
+    })
+    await alerts.successToast('New chat')
+  }
 }
 
 async function onUserJoin(event) {
   if (searchQuery.value != '') {
     return
   }
-  const index = chats.value.findIndex((c) => c.id == event.detail.Id)
+  const index = chats.value.findIndex((c) => c.id == event.detail.Payload.Chat.Id)
   if (index != -1) {
     chats.value.splice(index, 1)
   }
-  chats.value.splice(0, 0, { id: event.detail.Id, name: event.detail.Name })
+  chats.value.splice(0, 0, {
+    id: event.detail.Payload.Chat.Id,
+    name: event.detail.Payload.Chat.Name,
+  })
   await alerts.successToast('New user joined the chat')
 }
 
@@ -108,6 +119,7 @@ async function addGroupChat() {
         UserIds: selectedUsersIds,
       },
     },
+    Sender: { Id: Number(userId), Name: uname },
   }
   socket.sendMessage(socketMessage)
 }
@@ -122,6 +134,7 @@ async function addPersonalChat() {
           UserIds: [Number(userId), Number(selectedUser)],
         },
       },
+      Sender: { Id: Number(userId), Name: uname },
     }
     socket.sendMessage(socketMessage)
   }

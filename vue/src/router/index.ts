@@ -3,6 +3,7 @@ import Chats from '../views/Chats.vue'
 import Messages from '../views/Messages.vue'
 import Login from '@/views/Login.vue'
 import Register from '@/views/Register.vue'
+import ChatInfo from '@/views/ChatInfo.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -26,6 +27,11 @@ const router = createRouter({
       path: '/messages/:cid',
       name: 'messages',
       component: Messages,
+    },
+    {
+      path: '/info/:cid',
+      name: 'info',
+      component: ChatInfo,
     },
   ],
 })

@@ -6,7 +6,7 @@ export const useSocketStore = defineStore('socket', {
   state: () => ({
     socket: null as WebSocket | null,
     isConnected: false,
-    chatId: 0,
+    chatId: -1,
   }),
   actions: {
     connect() {
@@ -31,9 +31,9 @@ export const useSocketStore = defineStore('socket', {
               new CustomEvent('delete-message', { detail: data.Payload.Message }),
             )
           } else if (data.Type == 'New-Chat') {
-            window.dispatchEvent(new CustomEvent('new-chat', { detail: data.Payload.Chat }))
-          } else if (data.Type == 'New-UserToChat') {
-            window.dispatchEvent(new CustomEvent('user-join', { detail: data.Payload.Chat }))
+            window.dispatchEvent(new CustomEvent('new-chat', { detail: data }))
+          } else if (data.Type == 'User-Join') {
+            window.dispatchEvent(new CustomEvent('user-join', { detail: data }))
           } else if (data.Type == 'Error') {
             if (data.Payload.Chat.Id != -1) {
               router.push(`/messages/${data.Payload.Chat.Id}`)

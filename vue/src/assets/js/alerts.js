@@ -32,12 +32,12 @@ async function errorToast(message) {
     text: message,
   })
 }
-async function successToast(message) {
+async function successToast(message, position = null, time = null) {
   const Toast = Swal.mixin({
     toast: true,
-    position: 'top-end',
+    position: position || 'top-end',
     showConfirmButton: false,
-    timer: 2000,
+    timer: time || 2000,
     timerProgressBar: true,
     didOpen: (toast) => {
       toast.addEventListener('mouseenter', Swal.stopTimer)

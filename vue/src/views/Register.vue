@@ -64,6 +64,9 @@ onMounted(() => {
                   @keypress.space.prevent=""
                   v-model="name"
                   type="text"
+                  id="name"
+                  name="name"
+                  autocomplete="name"
                   class="bg-gray-50 border border-gray-300 text-gray-900 rounded-lg focus:ring-green-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-green-500 dark:focus:border-green-500"
                   placeholder="John Doe"
                   required
@@ -79,6 +82,9 @@ onMounted(() => {
                   @keypress.space.prevent=""
                   v-model="email"
                   type="email"
+                  id="email"
+                  name="email"
+                  autocomplete="email"
                   class="bg-gray-50 border border-gray-300 text-gray-900 rounded-lg focus:ring-green-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-green-500 dark:focus:border-green-500"
                   placeholder="name@company.com"
                   required
@@ -94,6 +100,9 @@ onMounted(() => {
                   @keypress.space.prevent=""
                   v-model="password"
                   type="password"
+                  id="password"
+                  name="password"
+                  autocomplete="off"
                   placeholder="••••••••"
                   pattern="(?=.*[0-9])(?=.*[A-Za-z])(?=.*[^a-zA-Z0-9]).{6,}"
                   title="Password must be at least 6 characters long and contain at least one letter, one number and one special character."
@@ -116,7 +125,7 @@ onMounted(() => {
                 >
               </p>
             </form>
-            <p id="#error" class="text-sm text-red-600 dark:text-red-500"></p>
+            <p id="#error" class="text-sm text-red-500 dark:text-red-600"></p>
           </div>
         </div>
       </div>

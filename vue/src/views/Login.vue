@@ -64,6 +64,9 @@ onMounted(() => {
                   @keypress.space.prevent=""
                   v-model="email"
                   type="email"
+                  id="email"
+                  name="email"
+                  autocomplete="email"
                   class="bg-gray-50 border border-gray-300 text-gray-900 rounded-lg focus:ring-green-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-green-500 dark:focus:border-green-500"
                   placeholder="name@company.com"
                   required
@@ -78,6 +81,9 @@ onMounted(() => {
                 <input
                   @keypress.space.prevent=""
                   v-model="password"
+                  id="password"
+                  name="password"
+                  autocomplete="off"
                   type="password"
                   placeholder="••••••••"
                   pattern="(?=.*[0-9])(?=.*[A-Za-z])(?=.*[^a-zA-Z0-9]).{6,}"

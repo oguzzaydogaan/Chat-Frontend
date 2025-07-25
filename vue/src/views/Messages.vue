@@ -1,7 +1,7 @@
 <script setup>
 import { RouterLink, useRoute } from 'vue-router'
 import { initModals } from 'flowbite'
-import { onMounted, ref, onUnmounted } from 'vue'
+import { onMounted, ref, onUnmounted, nextTick } from 'vue'
 import { useSocketStore } from '@/stores/socket'
 import alerts from '@/assets/js/alerts'
 import axios from '@/plugins/axios'
@@ -12,41 +12,85 @@ const userId = localStorage.getItem('userId')
 const socket = useSocketStore()
 const scrollHere = ref()
 const messages = ref()
+const messagesWithDates = ref({})
+const users = ref([])
 socket.SetChatId(Number(route.params.cid))
 const newMessage = ref()
 const name = ref()
 const multiselectSelected = ref([])
 const multiselectOptions = ref([])
+const isLoading = ref(false)
+var timeOutId = 0
 
 async function GetChat() {
-  axios(`/chats/${route.params.cid}/users/${userId}`)
-    .then((response) => {
-      name.value = response.data.Name
-      messages.value = response.data.Messages
-    })
-    .then(() => {
-      scrollHere.value.scrollIntoView({ behavior: 'smooth' })
-    })
+  const response = await axios(`/chats/${route.params.cid}/users/${userId}`)
+  name.value = response.data.Name
+  messages.value = response.data.Messages
+  users.value = response.data.Users
+
+  const now = new Date()
+  const yesterday = new Date(now)
+  yesterday.setDate(now.getDate() - 1)
+
+  messages.value.forEach((message) => {
+    const date = new Date(message.Time)
+    let key = ''
+
+    if (date.toDateString() === now.toDateString()) {
+      key = 'Today'
+    } else if (date.toDateString() === yesterday.toDateString()) {
+      key = 'Yesterday'
+    } else {
+      const diffTime = now - date
+      const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24))
+
+      if (diffDays < 7) {
+        key = date.toLocaleDateString('en-US', {
+          weekday: 'long',
+        })
+      } else if (diffDays < 365) {
+        key = date.toLocaleDateString('en-US', {
+          day: '2-digit',
+          month: 'short',
+          weekday: 'short',
+        })
+      } else {
+        key = date.toLocaleDateString('en-US', {
+          month: 'short',
+          year: 'numeric',
+        })
+      }
+    }
+
+    if (!messagesWithDates.value[key]) {
+      messagesWithDates.value[key] = []
+    }
+
+    messagesWithDates.value[key].push(message)
+  })
+  console.log(messagesWithDates.value)
+  await nextTick()
+  scrollHere.value.scrollIntoView({ behavior: 'smooth' })
 }
 
-async function newMessageEvent(event) {
+async function onNewMessage(event) {
   if (event.detail.ChatId == Number(route.params.cid)) {
-    messages.value.push(event.detail)
+    if (!messagesWithDates.value['Today']) {
+      messagesWithDates.value['Today'] = []
+    }
+    messagesWithDates.value['Today'].push(event.detail)
   }
 }
-async function deleteMessageEvent(event) {
+async function onDeleteMessage(event) {
   if (event.detail.ChatId == Number(route.params.cid)) {
-    console.log(event.detail)
-    const idx = messages.value.findIndex((m) => m.Id == event.detail.Id)
-    if (idx !== -1) {
-      messages.value[idx] = event.detail
-    }
-    if (userId == event.detail.Sender.Id) {
-      await alerts.successToast('Message deleted')
-    }
+    let key = document
+      .getElementById(event.detail.Id)
+      .parentElement.parentElement.getAttribute('customname')
+    const idx = messagesWithDates.value[key].findIndex((m) => m.Id == event.detail.Id)
+    messagesWithDates.value[key][idx] = event.detail
   }
 }
-async function newUserToChatEvent(event) {
+async function onUserJoin(event) {
   if (event.detail.Id != Number(route.params.cid)) {
     return
   }
@@ -54,9 +98,9 @@ async function newUserToChatEvent(event) {
 }
 
 async function multiselectGetUsers() {
-  var users = await axios.get('/users')
-  users.data = users.data.filter((user) => user.id != userId)
-  multiselectOptions.value = users.data.map((user) => ({
+  var allUsers = await axios.get('/users')
+  allUsers.data = allUsers.data.filter((user) => user.id != userId)
+  multiselectOptions.value = allUsers.data.map((user) => ({
     id: user.id,
     name: user.name,
   }))
@@ -99,161 +143,178 @@ async function sendMessage() {
 }
 
 async function deleteMessage(id) {
-  const socketMessage = {
-    Type: 'Delete-Message',
-    Payload: {
-      MessageId: id,
-    },
-  }
-  socket.sendMessage(socketMessage)
+  const div = document.getElementById('mbox-' + id)
+  div.classList.remove('bg-white')
+  div.classList.add('bg-gray-100')
+  timeOutId = setTimeout(async () => {
+    const socketMessage = {
+      Type: 'Delete-Message',
+      Payload: {
+        MessageId: id,
+      },
+    }
+    socket.sendMessage(socketMessage)
+  }, 1000)
+}
+async function deleteCancel(id) {
+  clearTimeout(timeOutId)
+  const div = document.getElementById('mbox-' + id)
+  div.classList.remove('bg-gray-100')
+  div.classList.add('bg-white')
 }
 
-function getMessageTime(time) {
+function messageTime(time) {
   const date = new Date(time)
-  const now = new Date()
   const minutes = date.getMinutes().toString().padStart(2, '0')
   const hours = date.getHours().toString().padStart(2, '0')
-  const diff = (now - date) / (1000 * 60 * 60 * 24)
-  if (diff >= 1 && diff < 2) {
-    return `Yesterday at ${date.getHours()}:${date.getMinutes()}`
-  } else if (diff >= 2 && diff < 7) {
-    return `${date.toLocaleDateString('en-US', { weekday: 'long' })} at ${date.getHours()}:${date.getMinutes()}`
-  } else if (diff >= 7 && diff < 365) {
-    return `${date.toLocaleDateString('en-US', { day: '2-digit', month: 'long' })} at ${date.getHours()}:${date.getMinutes()}`
-  }
   return `${hours}:${minutes}`
 }
 
 onMounted(async () => {
-  initModals()
+  isLoading.value = true
   await GetChat()
+  initModals()
   socket.connect()
-  window.addEventListener('new-message', newMessageEvent)
-  window.addEventListener('new-usertochat', newUserToChatEvent)
-  window.addEventListener('delete-message', deleteMessageEvent)
+  window.addEventListener('new-message', onNewMessage)
+  window.addEventListener('user-join', onUserJoin)
+  window.addEventListener('delete-message', onDeleteMessage)
+  isLoading.value = false
 })
 
 onUnmounted(() => {
-  window.removeEventListener('new-usertochat', newUserToChatEvent)
-  window.removeEventListener('new-message', newMessageEvent)
-  window.removeEventListener('delete-message', deleteMessageEvent)
+  window.removeEventListener('user-join', onUserJoin)
+  window.removeEventListener('new-message', onNewMessage)
+  window.removeEventListener('delete-message', onDeleteMessage)
 })
 </script>
 
 <template>
-  <main class="h-screen flex flex-col justify-between bg-gray-100">
-    <nav class="">
-      <div class="flex flex-wrap items-center justify-between mx-auto p-4">
-        <RouterLink to="/" class="flex items-center hover:scale-110">
-          <span class="material-symbols-outlined"> arrow_back_ios_new </span></RouterLink
-        >
+  <main class="h-screen flex flex-col justify-between">
+    <nav class="flex flex-wrap w-full bg-white items-center justify-between mx-auto p-4">
+      <RouterLink to="/" class="flex items-center hover:scale-110">
+        <span class="material-symbols-outlined"> arrow_back_ios_new </span></RouterLink
+      >
 
-        <span class="text-2xl font-semibold whitespace-nowrap dark:text-white hover:scale-110">{{
-          name
-        }}</span>
-        <button
-          class="flex items-center hover:scale-110"
-          @click="multiselectGetUsers()"
-          data-modal-target="add-user-modal"
-          data-modal-toggle="add-user-modal"
+      <span class="text-2xl font-semibold whitespace-nowrap dark:text-white hover:scale-110">{{
+        name
+      }}</span>
+      <button
+        v-if="users.length > 2"
+        class="flex items-center hover:scale-110"
+        @click="multiselectGetUsers()"
+        data-modal-target="add-user-modal"
+        data-modal-toggle="add-user-modal"
+      >
+        <span class="material-symbols-outlined text-green-500 hover:text-green-600"
+          >add_circle</span
         >
-          <span class="material-symbols-outlined text-green-500 hover:text-green-600"
-            >add_circle</span
+      </button>
+
+      <div
+        v-if="users.length > 2"
+        id="add-user-modal"
+        class="hidden overflow-y-auto overflow-x-hidden fixed z-50 inset-0 p-4"
+      >
+        <div class="bg-white rounded-lg p-3 space-y-4 w-full flex flex-col max-w-md mx-auto">
+          <button
+            data-modal-hide="add-user-modal"
+            class="w-fit ms-auto h-6 hover:scale-110"
+            @focus="removeFocus()"
           >
-        </button>
-        <div
-          id="add-user-modal"
-          class="hidden overflow-y-auto overflow-x-hidden fixed z-50 inset-0 p-4"
-        >
-          <div class="bg-white rounded-lg p-3 space-y-4 w-full flex flex-col max-w-md mx-auto">
+            <span class="material-symbols-outlined text-red-500 hover:text-red-600"> close </span>
+          </button>
+          <form @submit.prevent="addUserToChat()" class="space-y-4">
+            <multiselect
+              name="multi-user"
+              v-model="multiselectSelected"
+              :options="multiselectOptions"
+              :multiple="false"
+              :searchable="true"
+              label="name"
+              track-by="id"
+              placeholder="Choose a user"
+            />
             <button
-              data-modal-hide="add-user-modal"
-              class="w-fit ms-auto h-6 hover:scale-110"
               @focus="removeFocus()"
+              type="submit"
+              data-modal-hide="add-user-modal"
+              class="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 w-full disabled:opacity-50"
+              :disabled="multiselectSelected.length < 1"
             >
-              <span class="material-symbols-outlined text-red-500 hover:text-red-600"> close </span>
+              Add User
             </button>
-            <form @submit.prevent="addUserToChat()" class="space-y-4">
-              <multiselect
-                v-model="multiselectSelected"
-                :options="multiselectOptions"
-                :multiple="false"
-                :searchable="true"
-                label="name"
-                track-by="id"
-                placeholder="Choose a user"
-              />
-              <button
-                @focus="removeFocus()"
-                type="submit"
-                data-modal-hide="add-user-modal"
-                class="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 w-full disabled:opacity-50"
-                :disabled="multiselectSelected.length < 1"
-              >
-                Add User
-              </button>
-            </form>
-          </div>
+          </form>
         </div>
       </div>
+
+      <div v-if="users.length <= 2" class="w-[24px]"></div>
     </nav>
-    <div class="grow overflow-y-auto bg-gray-200">
-      <div class="p-3 space-y-3">
-        <div v-for="message in messages">
-          <div v-if="message.Sender.Id != userId" class="flex items-start gap-2.5">
-            <img
-              class="w-8 h-8 rounded-full"
-              src="https://static.vecteezy.com/system/resources/previews/009/292/244/non_2x/default-avatar-icon-of-social-media-user-vector.jpg"
-              alt="Jese image"
-            />
-            <div
-              class="flex flex-col w-fit max-w-[320px] leading-1.5 px-4 py-1 bg-green-500 rounded-e-xl rounded-es-xl"
-            >
-              <span class="text-sm font-semibold text-white dark:text-white">{{
-                message.Sender.Name
-              }}</span>
-              <div class="flex space-x-3">
-                <p class="text-sm font-normal text-gray-200 dark:text-white wrap-anywhere mb-0.5">
-                  {{ message.Content }}
-                </p>
-                <span class="text-xs font-normal text-gray-300 dark:text-gray-400 self-end">{{
-                  getMessageTime(message.Time)
-                }}</span>
-              </div>
-            </div>
-          </div>
-          <div v-if="message.Sender.Id == userId" class="flex items-start gap-2.5 justify-self-end">
-            <button
-              v-if="!message.IsDeleted"
-              class="flex items-center -mr-2 hover:scale-110"
-              @click="deleteMessage(message.Id)"
-            >
-              <span
-                class="material-symbols-outlined text-red-500 hover:text-red-600"
-                style="font-size: 20px"
-                >delete</span
+
+    <div class="grow pt-2 overflow-y-auto bg-gray-100" style="scrollbar-gutter: stable">
+      <div v-for="(messages, key) in messagesWithDates" :key="key" :customname="key">
+        <p
+          class="sticky top-0 text-center w-fit mx-auto px-2 py-0.5 rounded-full bg-gray-400 shadow-lg text-sm font-bold text-white"
+        >
+          {{ key }}
+        </p>
+        <div class="px-3 py-2 space-y-3">
+          <div v-for="message in messages" :key="message" :id="`${message.Id}`">
+            <div v-if="message.Sender.Id != userId" class="flex items-start gap-2.5">
+              <img
+                class="w-8 h-8 rounded-full"
+                src="https://static.vecteezy.com/system/resources/previews/009/292/244/non_2x/default-avatar-icon-of-social-media-user-vector.jpg"
+                alt="Jese image"
+              />
+              <div
+                class="flex flex-col w-fit max-w-[320px] leading-1.5 px-4 py-1 bg-green-500 rounded-e-xl rounded-es-xl"
               >
-            </button>
-            <div
-              class="flex flex-col w-fit max-w-[320px] leading-1.5 px-4 py-1 bg-white rounded-e-xl rounded-es-xl"
-            >
-              <div class="flex space-x-3">
-                <p class="text-sm font-normal text-gray-600 dark:text-white wrap-anywhere mb-0.5">
-                  {{ message.Content }}
-                </p>
-                <span class="text-xs font-normal text-gray-500 dark:text-gray-400 self-end">{{
-                  getMessageTime(message.Time)
+                <span class="text-sm font-semibold text-white dark:text-white">{{
+                  message.Sender.Name
                 }}</span>
+                <div class="flex space-x-3">
+                  <p class="text-sm font-normal text-gray-200 dark:text-white wrap-anywhere mb-0.5">
+                    {{ message.Content }}
+                  </p>
+                  <span class="text-xs font-normal text-gray-300 dark:text-gray-400 self-end">{{
+                    messageTime(message.Time)
+                  }}</span>
+                </div>
               </div>
             </div>
-            <img
-              class="w-8 h-8 rounded-full"
-              src="https://static.vecteezy.com/system/resources/previews/009/292/244/non_2x/default-avatar-icon-of-social-media-user-vector.jpg"
-              alt="Jese image"
-            />
+            <div
+              v-if="message.Sender.Id == userId"
+              class="flex items-start gap-2.5 justify-self-end"
+            >
+              <div
+                :id="`mbox-${message.Id}`"
+                @mousedown.prevent="message.IsDeleted == false ? deleteMessage(message.Id) : null"
+                @mouseup="deleteCancel(message.Id)"
+                class="flex flex-col w-fit max-w-[320px] leading-1.5 px-4 py-1 bg-white rounded-e-xl rounded-es-xl"
+              >
+                <div class="flex space-x-3">
+                  <p
+                    style="-webkit-user-select: none; user-select: none"
+                    class="text-sm font-normal text-gray-600 dark:text-white wrap-anywhere mb-0.5"
+                  >
+                    {{ message.Content }}
+                  </p>
+                  <span
+                    style="-webkit-user-select: none; user-select: none"
+                    class="text-xs font-normal text-gray-500 dark:text-gray-400 self-end"
+                    >{{ messageTime(message.Time) }}</span
+                  >
+                </div>
+              </div>
+              <img
+                class="w-8 h-8 rounded-full"
+                src="https://static.vecteezy.com/system/resources/previews/009/292/244/non_2x/default-avatar-icon-of-social-media-user-vector.jpg"
+                alt="Jese image"
+              />
+            </div>
           </div>
         </div>
       </div>
+
       <div ref="scrollHere"></div>
     </div>
 
@@ -262,6 +323,7 @@ onUnmounted(() => {
       class="flex justify-between gap-5 items-center p-3 bg-white border-t-2 border-gray-200"
     >
       <input
+        name="message"
         v-model="newMessage"
         class="text-gray-900 placeholder-gray-500 grow bg-gray-200 rounded-full p-2 px-3 focus:ring-green-500 border-0"
         type="text"
@@ -274,5 +336,17 @@ onUnmounted(() => {
         <i class="bi bi-send text-2xl"></i>
       </button>
     </form>
+
+    <LoadingOverlay
+      :active="isLoading"
+      :opacity="1"
+      :is-full-page="true"
+      :can-cancel="false"
+      background-color="#fff"
+      :z-index="50"
+      loader="dots"
+      :lock-scroll="true"
+      color="#10B981"
+    />
   </main>
 </template>

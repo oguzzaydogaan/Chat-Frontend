@@ -1,4 +1,5 @@
 import alerts from '@/assets/js/alerts'
+import router from '@/router'
 import { defineStore } from 'pinia'
 
 export const useSocketStore = defineStore('socket', {
@@ -32,19 +33,30 @@ export const useSocketStore = defineStore('socket', {
           } else if (data.Type == 'New-Chat') {
             window.dispatchEvent(new CustomEvent('new-chat', { detail: data.Payload.Chat }))
           } else if (data.Type == 'New-UserToChat') {
-            window.dispatchEvent(new CustomEvent('new-usertochat', { detail: data.Payload.Chat }))
+            window.dispatchEvent(new CustomEvent('user-join', { detail: data.Payload.Chat }))
           } else if (data.Type == 'Error') {
-            await alerts.errorToast(data.Payload.Error)
+            if (data.Payload.Chat.Id != -1) {
+              router.push(`/messages/${data.Payload.Chat.Id}`)
+            } else {
+              await alerts.errorToast(data.Payload.Error)
+            }
           }
         } catch (err) {
           alerts.errorAlert('WebSocket error')
         }
       }
 
-      this.socket.onclose = async () => {
+      this.socket.onclose = async (event) => {
         this.socket = null
         this.isConnected = false
-        console.error('WebSocket connection closed.')
+        await alerts.errorAlert(event.reason || 'Server not responding')
+        if (
+          event.reason == 'Another device connected' ||
+          event.reason == 'Session expired. Please log in again'
+        ) {
+          localStorage.clear()
+          window.location.href = '/'
+        }
       }
 
       this.socket.onerror = () => {

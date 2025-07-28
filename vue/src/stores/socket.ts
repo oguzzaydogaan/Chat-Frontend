@@ -24,7 +24,9 @@ export const useSocketStore = defineStore('socket', {
       this.socket.onmessage = async (event: MessageEvent) => {
         try {
           const data = JSON.parse(event.data)
-          if (data.Type == 'Send-Message') {
+          if (data.Type == 'seen') {
+            window.dispatchEvent(new CustomEvent('new-seen', { detail: data.Payload.MessageReads }))
+          } else if (data.Type == 'Send-Message') {
             window.dispatchEvent(new CustomEvent('new-message', { detail: data.Payload.Message }))
           } else if (data.Type == 'Delete-Message') {
             window.dispatchEvent(

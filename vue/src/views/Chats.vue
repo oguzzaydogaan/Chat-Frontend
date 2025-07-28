@@ -1,7 +1,7 @@
 <script setup>
 import { initDropdowns, initModals } from 'flowbite'
 import { RouterLink, useRouter } from 'vue-router'
-import { onMounted, onUnmounted, ref } from 'vue'
+import { nextTick, onMounted, onUnmounted, ref } from 'vue'
 import { useSocketStore } from '@/stores/socket'
 import axios from '@/plugins/axios'
 import Multiselect from 'vue-multiselect'
@@ -45,13 +45,13 @@ async function onNewMessage(event) {
     return
   }
   const index = chats.value.findIndex((c) => c.id == event.detail.ChatId)
-  if (index != 0 && index != -1) {
+  if (index != -1) {
     const chat = chats.value[index]
-    chats.value.splice(index, 1)
-    chats.value.splice(0, 0, chat)
-  }
-  if (userId != event.detail.Sender.Id) {
-    await alerts.successToast('New message received')
+    chat.count += 1
+    if (index != 0) {
+      chats.value.splice(index, 1)
+      chats.value.splice(0, 0, chat)
+    }
   }
 }
 
@@ -60,12 +60,14 @@ async function onDeleteMessage(event) {
     return
   }
   const index = chats.value.findIndex((c) => c.id == event.detail.ChatId)
-  if (index != 0 && index != -1) {
+  if (index != -1) {
     const chat = chats.value[index]
-    chats.value.splice(index, 1)
-    chats.value.splice(0, 0, chat)
+    chat.count += 1
+    if (index != 0) {
+      chats.value.splice(index, 1)
+      chats.value.splice(0, 0, chat)
+    }
   }
-  await alerts.successToast('Message deleted')
 }
 
 async function onNewChat(event) {
@@ -372,8 +374,14 @@ onUnmounted(() => {
         :to="`/messages/${chat.id}`"
         class="block border-b border-gray-300 p-4 hover:bg-green-100"
       >
-        <div class="font-bold overflow-hidden">
-          {{ chat.name }}
+        <div class="font-bold flex justify-between items-center">
+          <p>{{ chat.name }}</p>
+          <span
+            v-if="chat.count > 0"
+            class="bg-green-100 text-green-800 text-xs font-medium rounded-full px-2 py-0.5"
+          >
+            {{ chat.count }}
+          </span>
         </div>
       </RouterLink>
       <div v-if="chats.length < 1 && isLoading == false" class="text-center text-gray-500 p-4">

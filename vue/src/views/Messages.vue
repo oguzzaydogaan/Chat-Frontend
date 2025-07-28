@@ -13,6 +13,7 @@ const socket = useSocketStore()
 const scrollHere = ref()
 const messages = ref()
 const messagesWithDates = ref({})
+const notSeenMessageIds = ref([])
 const users = ref([])
 socket.SetChatId(Number(route.params.cid))
 const newMessage = ref()
@@ -33,6 +34,10 @@ async function GetChat() {
   yesterday.setDate(now.getDate() - 1)
 
   messages.value.forEach((message) => {
+    if (!message.Seens.some((seen) => seen.UserId == Number(userId))) {
+      notSeenMessageIds.value.push(message.Id)
+    }
+
     const date = new Date(message.Time)
     let key = ''
 
@@ -65,19 +70,53 @@ async function GetChat() {
     if (!messagesWithDates.value[key]) {
       messagesWithDates.value[key] = []
     }
-
     messagesWithDates.value[key].push(message)
   })
   await nextTick()
   scrollHere.value.scrollIntoView({ behavior: 'smooth' })
+  console.log(notSeenMessageIds.value)
+  const socketMessage = {
+    Type: 'seen',
+    Payload: {
+      Ids: notSeenMessageIds.value,
+      ChatId: Number(route.params.cid),
+    },
+    Sender: { Id: Number(userId), Name: userName },
+  }
+  socket.sendMessage(socketMessage)
 }
 
+async function onSeen(event) {
+  event.detail.forEach((mr) => {
+    Object.keys(messagesWithDates.value).forEach((dateKey) => {
+      messagesWithDates.value[dateKey].forEach((message) => {
+        if (message.Id === mr.MessageId) {
+          message.Seens.push(mr)
+        }
+      })
+    })
+  })
+  console.log(messagesWithDates.value)
+}
 async function onNewMessage(event) {
   if (event.detail.ChatId == Number(route.params.cid)) {
     if (!messagesWithDates.value['Today']) {
       messagesWithDates.value['Today'] = []
     }
     messagesWithDates.value['Today'].push(event.detail)
+    if (event.detail.Sender.Id != Number(userId)) {
+      const socketMessage = {
+        Type: 'seen',
+        Payload: {
+          Ids: [event.detail.Id],
+          ChatId: event.detail.ChatId,
+        },
+        Sender: { Id: Number(userId), Name: userName },
+      }
+      socket.sendMessage(socketMessage)
+    } else {
+      console.log(event.detail)
+    }
   }
 }
 async function onDeleteMessage(event) {
@@ -178,12 +217,13 @@ function messageTime(time) {
 
 onMounted(async () => {
   isLoading.value = true
-  await GetChat()
-  initModals()
   socket.connect()
   window.addEventListener('new-message', onNewMessage)
+  window.addEventListener('new-seen', onSeen)
   window.addEventListener('user-join', onUserJoin)
   window.addEventListener('delete-message', onDeleteMessage)
+  await GetChat()
+  initModals()
   isLoading.value = false
 })
 

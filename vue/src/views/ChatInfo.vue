@@ -1,6 +1,6 @@
 <script setup>
 import { RouterLink, useRoute } from 'vue-router'
-import { onMounted, ref, onUnmounted, nextTick } from 'vue'
+import { onMounted, ref, onUnmounted } from 'vue'
 import { useSocketStore } from '@/stores/socket'
 import axios from '@/plugins/axios'
 
@@ -10,7 +10,6 @@ const socket = useSocketStore()
 const users = ref([])
 const searchQuery = ref('')
 socket.SetChatId(Number(route.params.cid))
-console.log(socket.chatId)
 const name = ref('')
 const isLoading = ref(false)
 const fullScreen = ref(true)
@@ -66,16 +65,14 @@ onUnmounted(() => {
 
 <template>
   <main>
-    <nav class="flex flex-wrap w-full bg-white items-center justify-between mx-auto p-4">
+    <nav class="flex w-full bg-white items-center justify-between mx-auto p-4">
       <RouterLink :to="`/messages/${route.params.cid}`" class="flex items-center hover:scale-110">
         <span class="material-symbols-outlined"> arrow_back_ios_new </span></RouterLink
       >
 
-      <RouterLink
-        :to="`/info/${route.params.cid}`"
-        class="text-2xl font-semibold whitespace-nowrap dark:text-white hover:scale-110"
-        >{{ name }}</RouterLink
-      >
+      <p class="text-2xl font-semibold whitespace-nowrap dark:text-white">
+        {{ name }}
+      </p>
 
       <div class="w-[24px]"></div>
     </nav>

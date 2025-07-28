@@ -327,6 +327,7 @@ onUnmounted(() => {
               type="text"
               v-model="chatName"
               placeholder="Enter chat name..."
+              maxlength="30"
               class="bg-gray-200 rounded-lg text-sm p-3 w-full border-0 focus:ring-blue-500 focus:border-blue-500"
               required
             />
@@ -371,7 +372,7 @@ onUnmounted(() => {
         :to="`/messages/${chat.id}`"
         class="block border-b border-gray-300 p-4 hover:bg-green-100"
       >
-        <div class="font-bold">
+        <div class="font-bold overflow-hidden">
           {{ chat.name }}
         </div>
       </RouterLink>

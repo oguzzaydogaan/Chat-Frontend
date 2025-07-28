@@ -196,14 +196,14 @@ onUnmounted(() => {
 
 <template>
   <main class="h-screen flex flex-col justify-between">
-    <nav class="flex flex-wrap w-full bg-white items-center justify-between mx-auto p-4">
+    <nav class="flex w-full bg-white items-center justify-between mx-auto p-4 gap-x-4">
       <RouterLink to="/" class="flex items-center hover:scale-110">
         <span class="material-symbols-outlined"> arrow_back_ios_new </span></RouterLink
       >
 
       <RouterLink
         :to="`/info/${route.params.cid}`"
-        class="text-2xl font-semibold whitespace-nowrap dark:text-white hover:scale-110"
+        class="text-2xl font-semibold overflow-hidden dark:text-white text-center"
         >{{ name }}</RouterLink
       >
       <button

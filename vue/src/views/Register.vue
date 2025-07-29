@@ -61,7 +61,6 @@ onMounted(() => {
                   >Your name</label
                 >
                 <input
-                  @keypress.space.prevent=""
                   v-model="name"
                   type="text"
                   id="name"

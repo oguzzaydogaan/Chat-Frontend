@@ -1,7 +1,7 @@
 <script setup>
 import { initDropdowns, initModals } from 'flowbite'
 import { RouterLink, useRouter } from 'vue-router'
-import { nextTick, onMounted, onUnmounted, ref } from 'vue'
+import { onMounted, onUnmounted, ref } from 'vue'
 import { useSocketStore } from '@/stores/socket'
 import axios from '@/plugins/axios'
 import Multiselect from 'vue-multiselect'

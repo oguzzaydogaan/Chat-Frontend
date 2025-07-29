@@ -87,10 +87,10 @@ async function onUserJoin(event) {
   if (searchQuery.value != '') {
     return
   }
-  const index = chats.value.findIndex((c) => c.id == event.detail.Payload.Chat.Id)
-  if (index != -1) {
-    const chat = chats.value[index]
+  let chat = chats.value.find((c) => c.id == event.detail.Payload.Chat.Id)
+  if (chat) {
     chat.count += 1
+    let index = chats.value.indexOf(chat)
     chats.value.splice(index, 1)
     chats.value.splice(0, 0, chat)
   } else {

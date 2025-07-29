@@ -18,7 +18,6 @@ export const useSocketStore = defineStore('socket', {
 
       this.socket.onopen = () => {
         this.isConnected = true
-        console.log('Opened.')
       }
 
       this.socket.onmessage = async (event: MessageEvent) => {

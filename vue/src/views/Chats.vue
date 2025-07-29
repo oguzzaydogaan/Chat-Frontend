@@ -78,6 +78,7 @@ async function onNewChat(event) {
     chats.value.splice(0, 0, {
       id: event.detail.Payload.Chat.Id,
       name: event.detail.Payload.Chat.Name,
+      count: -1,
     })
     await alerts.successToast('New chat')
   }
@@ -97,7 +98,7 @@ async function onUserJoin(event) {
     chats.value.splice(0, 0, {
       id: event.detail.Payload.Chat.Id,
       name: event.detail.Payload.Chat.Name,
-      count: 1,
+      count: -1,
     })
   }
 }
@@ -385,6 +386,12 @@ onUnmounted(() => {
             class="bg-green-500 text-white text-xs font-medium rounded-full px-2 py-0.5"
           >
             {{ chat.count }}
+          </span>
+          <span
+            v-if="chat.count == -1"
+            class="bg-green-500 text-white text-xs font-medium rounded-full px-2 py-0.5 text-center"
+          >
+            new
           </span>
         </div>
       </RouterLink>

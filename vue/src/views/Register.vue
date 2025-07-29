@@ -17,7 +17,7 @@ async function handleSignUp() {
       password: password.value,
     })
     .then(function () {
-      alerts.successAlert('Registration successful. You can now log in.')
+      alerts.successAlert('Registration successful. Please verify your email.')
       router.push('/')
     })
     .catch(function (error) {

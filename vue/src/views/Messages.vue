@@ -146,16 +146,17 @@ async function onUserJoin(event) {
   }
   messagesWithDates.value['Today'].push(event.detail.Payload.Message)
   users.value = event.detail.Payload.Chat.Users
-
-  const socketMessage = {
-    Type: 'seen',
-    Payload: {
-      Ids: [event.detail.Payload.Message.Id],
-      ChatId: event.detail.Payload.Message.ChatId,
-    },
-    Sender: { Id: Number(userId), Name: userName },
+  if (event.detail.Sender.Id != Number(userId)) {
+    const socketMessage = {
+      Type: 'seen',
+      Payload: {
+        Ids: [event.detail.Payload.Message.Id],
+        ChatId: event.detail.Payload.Message.ChatId,
+      },
+      Sender: { Id: Number(userId), Name: userName },
+    }
+    socket.sendMessage(socketMessage)
   }
-  socket.sendMessage(socketMessage)
 }
 
 async function multiselectGetUsers() {

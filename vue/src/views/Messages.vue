@@ -217,6 +217,7 @@ async function deleteMessage(id) {
       Payload: {
         MessageId: id,
       },
+      Sender: { Id: Number(userId), Name: userName },
     }
     socket.sendMessage(socketMessage)
   }, 1000)

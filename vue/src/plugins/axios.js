@@ -38,9 +38,11 @@ instance.interceptors.response.use(
     if (!error.response) {
       await alerts.errorAlert('Network error. Please check your connection.')
     } else if (error.response.status == 400) {
-      await alerts.errorAlert(error.response.data.message || 'Bad request. Please try again.')
+      await alerts.errorAlert(error.response.data || 'Bad request. Please try again.')
     } else if (error.response.status == 404) {
-      await alerts.errorAlert(error.response.data.message || 'Resource not found.')
+      await alerts.errorAlert(error.response.data || 'Resource not found.')
+    } else if (error.response.status == 403) {
+      await alerts.errorAlert(error.response.data || 'Forbidden.')
     } else if (error.response.status == 401) {
       localStorage.clear()
       await alerts.errorAlert('Session expired. Please log in again.')

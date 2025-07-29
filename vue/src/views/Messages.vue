@@ -114,8 +114,6 @@ async function onNewMessage(event) {
         Sender: { Id: Number(userId), Name: userName },
       }
       socket.sendMessage(socketMessage)
-    } else {
-      console.log(event.detail)
     }
   }
 }
@@ -126,6 +124,17 @@ async function onDeleteMessage(event) {
       .parentElement.parentElement.getAttribute('customname')
     const idx = messagesWithDates.value[key].findIndex((m) => m.Id == event.detail.Id)
     messagesWithDates.value[key][idx] = event.detail
+    if (event.detail.Sender.Id != Number(userId)) {
+      const socketMessage = {
+        Type: 'seen',
+        Payload: {
+          Ids: [event.detail.Id],
+          ChatId: event.detail.ChatId,
+        },
+        Sender: { Id: Number(userId), Name: userName },
+      }
+      socket.sendMessage(socketMessage)
+    }
   }
 }
 async function onUserJoin(event) {
@@ -137,6 +146,16 @@ async function onUserJoin(event) {
   }
   messagesWithDates.value['Today'].push(event.detail.Payload.Message)
   users.value = event.detail.Payload.Chat.Users
+
+  const socketMessage = {
+    Type: 'seen',
+    Payload: {
+      Ids: [event.detail.Payload.Message.Id],
+      ChatId: event.detail.Payload.Message.ChatId,
+    },
+    Sender: { Id: Number(userId), Name: userName },
+  }
+  socket.sendMessage(socketMessage)
 }
 
 async function multiselectGetUsers() {

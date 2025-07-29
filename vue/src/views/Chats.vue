@@ -89,13 +89,17 @@ async function onUserJoin(event) {
   }
   const index = chats.value.findIndex((c) => c.id == event.detail.Payload.Chat.Id)
   if (index != -1) {
+    const chat = chats.value[index]
+    chat.count += 1
     chats.value.splice(index, 1)
+    chats.value.splice(0, 0, chat)
+  } else {
+    chats.value.splice(0, 0, {
+      id: event.detail.Payload.Chat.Id,
+      name: event.detail.Payload.Chat.Name,
+      count: 1,
+    })
   }
-  chats.value.splice(0, 0, {
-    id: event.detail.Payload.Chat.Id,
-    name: event.detail.Payload.Chat.Name,
-  })
-  await alerts.successToast('New user joined the chat')
 }
 
 async function multiselectGetUsers() {
@@ -378,7 +382,7 @@ onUnmounted(() => {
           <p>{{ chat.name }}</p>
           <span
             v-if="chat.count > 0"
-            class="bg-green-100 text-green-800 text-xs font-medium rounded-full px-2 py-0.5"
+            class="bg-green-500 text-white text-xs font-medium rounded-full px-2 py-0.5"
           >
             {{ chat.count }}
           </span>

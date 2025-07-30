@@ -47,7 +47,9 @@ async function onNewMessage(event) {
   const index = chats.value.findIndex((c) => c.id == event.detail.ChatId)
   if (index != -1) {
     const chat = chats.value[index]
-    chat.count += 1
+    if (chat.count != -1) {
+      chat.count += 1
+    }
     if (index != 0) {
       chats.value.splice(index, 1)
       chats.value.splice(0, 0, chat)
@@ -90,7 +92,9 @@ async function onUserJoin(event) {
   }
   let chat = chats.value.find((c) => c.id == event.detail.Payload.Chat.Id)
   if (chat) {
-    chat.count += 1
+    if (chat.count != -1) {
+      chat.count += 1
+    }
     let index = chats.value.indexOf(chat)
     chats.value.splice(index, 1)
     chats.value.splice(0, 0, chat)

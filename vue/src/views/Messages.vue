@@ -11,6 +11,7 @@ const userId = localStorage.getItem('userId')
 const userName = localStorage.getItem('name')
 const socket = useSocketStore()
 const scrollHere = ref()
+const files = ref()
 const messages = ref()
 const messagesWithDates = ref({})
 const notSeenMessageIds = ref([])
@@ -190,10 +191,39 @@ function removeFocus() {
   document.activeElement.blur()
 }
 
+async function fileChange(event) {
+  files.value = event.target.files[0]
+  console.log(files.value)
+}
+async function fileToBytes(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+
+    reader.onload = () => {
+      const arrayBuffer = reader.result
+      const byteArray = new Uint8Array(arrayBuffer)
+      resolve(byteArray)
+    }
+
+    reader.onerror = reject
+
+    reader.readAsArrayBuffer(file)
+  })
+}
+
+function bytesToBase64(bytes) {
+  return btoa(String.fromCharCode(...bytes))
+}
+
 async function sendMessage() {
-  if (!newMessage.value || !newMessage.value.trim()) {
+  if ((!newMessage.value || !newMessage.value.trim()) && !files.value) {
     newMessage.value = ''
     return
+  }
+  let base64Image = null
+  if (files.value) {
+    const bytes = await fileToBytes(files.value)
+    base64Image = bytesToBase64(bytes)
   }
   const socketMessage = {
     Type: 'Send-Message',
@@ -201,10 +231,12 @@ async function sendMessage() {
       UserId: Number(userId),
       ChatId: Number(route.params.cid),
       Content: newMessage.value,
+      ImageString: base64Image ?? '',
     },
   }
   socket.sendMessage(socketMessage)
   newMessage.value = ''
+  files.value = null
 }
 
 async function deleteMessage(id) {
@@ -334,57 +366,78 @@ onUnmounted(() => {
             >
               {{ message.Content }}
             </div>
+
             <div
               v-if="message.Sender.Id != userId && !message.IsSystem"
-              class="flex items-start gap-2.5"
+              class="flex items-end gap-1"
             >
               <img
-                class="w-8 h-8 rounded-full"
+                class="w-6 h-6 rounded-full"
                 src="https://static.vecteezy.com/system/resources/previews/009/292/244/non_2x/default-avatar-icon-of-social-media-user-vector.jpg"
                 alt="Jese image"
               />
               <div
-                class="flex flex-col w-fit max-w-[320px] leading-1.5 px-4 py-1 bg-green-500 rounded-e-xl rounded-es-xl"
+                class="flex flex-col w-fit max-w-[250px] lg:max-w-[360px] leading-1.5 px-1.5 py-1 bg-white rounded-r-xl rounded-tl-xl"
               >
-                <span class="text-sm font-semibold text-white dark:text-white">{{
-                  message.Sender.Name
-                }}</span>
-                <div class="flex space-x-3">
-                  <p class="text-sm font-normal text-gray-200 dark:text-white wrap-anywhere mb-0.5">
-                    {{ message.Content }}
-                  </p>
-                  <span class="text-xs font-normal text-gray-300 dark:text-gray-400 self-end">{{
-                    messageTime(message.Time)
+                <div class="px-1.5">
+                  <span class="text-sm font-semibold text-green-500 dark:text-white">{{
+                    message.Sender.Name
                   }}</span>
+                </div>
+
+                <img
+                  v-if="message.ImageString != ''"
+                  :src="`data:image/png;base64,${message.ImageString}`"
+                  class="bg-gray-800 rounded-lg mt-1 inset-shadow-lg"
+                />
+                <div class="px-1.5">
+                  <div class="flex space-x-3">
+                    <p
+                      class="text-sm font-normal text-gray-500 dark:text-white wrap-anywhere grow mb-0.5"
+                    >
+                      {{ message.Content }}
+                    </p>
+                    <span class="text-xs font-normal text-gray-400 dark:text-gray-400 self-end">{{
+                      messageTime(message.Time)
+                    }}</span>
+                  </div>
                 </div>
               </div>
             </div>
+
             <div
               v-if="message.Sender.Id == userId && !message.IsSystem"
-              class="flex items-start gap-2.5 justify-self-end"
+              class="flex items-end gap-1 justify-self-end"
             >
               <div
                 :id="`mbox-${message.Id}`"
                 @mousedown.prevent="message.IsDeleted == false ? deleteMessage(message.Id) : null"
                 @mouseup="deleteCancel(message.Id)"
-                class="flex flex-col w-fit max-w-[320px] leading-1.5 px-4 py-1 bg-white rounded-e-xl rounded-es-xl"
+                class="flex flex-col w-fit max-w-[250px] lg:max-w-[360px] leading-1.5 px-1.5 py-1 bg-green-500 rounded-l-xl rounded-tr-xl"
               >
-                <div class="flex space-x-3">
-                  <p
-                    style="-webkit-user-select: none; user-select: none"
-                    class="text-sm font-normal text-gray-600 dark:text-white wrap-anywhere mb-0.5"
-                  >
-                    {{ message.Content }}
-                  </p>
-                  <span
-                    style="-webkit-user-select: none; user-select: none"
-                    class="text-xs font-normal text-gray-500 dark:text-gray-400 self-end"
-                    >{{ messageTime(message.Time) }}</span
-                  >
+                <img
+                  v-if="message.ImageString != ''"
+                  :src="`data:image/png;base64,${message.ImageString}`"
+                  class="rounded-lg bg-gray-800 inset-shadow-2xl"
+                />
+                <div class="px-1.5">
+                  <div class="flex space-x-3">
+                    <p
+                      style="-webkit-user-select: none; user-select: none"
+                      class="text-sm font-normal text-white dark:text-white grow wrap-anywhere mb-0.5"
+                    >
+                      {{ message.Content }}
+                    </p>
+                    <span
+                      style="-webkit-user-select: none; user-select: none"
+                      class="text-xs font-normal text-white dark:text-gray-400 self-end"
+                      >{{ messageTime(message.Time) }}</span
+                    >
+                  </div>
                 </div>
               </div>
               <img
-                class="w-8 h-8 rounded-full"
+                class="w-6 h-6 rounded-full"
                 src="https://static.vecteezy.com/system/resources/previews/009/292/244/non_2x/default-avatar-icon-of-social-media-user-vector.jpg"
                 alt="Jese image"
               />
@@ -398,15 +451,26 @@ onUnmounted(() => {
 
     <form
       @submit.prevent="sendMessage"
-      class="flex justify-between gap-5 items-center p-3 bg-white border-t-2 border-gray-200"
+      class="flex justify-between items-center pr-3 py-3 bg-white border-t-2 border-gray-200"
     >
+      <label
+        for="dropzone-file"
+        class="flex flex-col items-center justify-center cursor-pointer ms-1"
+      >
+        <div class="flex flex-col items-center justify-center">
+          <span class="material-symbols-outlined text-gray-500"> attach_file </span>
+        </div>
+        <input @change="fileChange" id="dropzone-file" type="file" class="hidden" />
+      </label>
       <input
         name="message"
         v-model="newMessage"
-        class="text-gray-900 placeholder-gray-500 grow bg-gray-200 rounded-full p-2 px-3 focus:ring-green-500 border-0"
+        class="text-gray-900 placeholder-gray-500 me-1.5 grow bg-gray-200 rounded-full p-2 px-3 focus:ring-green-500 border-0"
         type="text"
         placeholder="Type your message here..."
       />
+      <!-- <input type="file" @change="fileChange" /> -->
+
       <button
         type="submit"
         class="bg-green-500 block text-white rounded-full w-[40px] h-[40px] hover:bg-green-600 transition-all duration-300"

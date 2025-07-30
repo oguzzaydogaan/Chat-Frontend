@@ -75,16 +75,6 @@ async function GetChat() {
   })
   await nextTick()
   scrollHere.value.scrollIntoView({ behavior: 'smooth' })
-  console.log(notSeenMessageIds.value)
-  const socketMessage = {
-    Type: 'seen',
-    Payload: {
-      Ids: notSeenMessageIds.value,
-      ChatId: Number(route.params.cid),
-    },
-    Sender: { Id: Number(userId), Name: userName },
-  }
-  socket.sendMessage(socketMessage)
 }
 
 async function onSeen(event) {
@@ -97,7 +87,7 @@ async function onSeen(event) {
       })
     })
   })
-  console.log(messagesWithDates.value)
+  console.log('hello')
 }
 async function onNewMessage(event) {
   if (event.detail.ChatId == Number(route.params.cid)) {
@@ -193,7 +183,6 @@ function removeFocus() {
 
 async function fileChange(event) {
   files.value = event.target.files[0]
-  console.log(files.value)
 }
 async function fileToBytes(file) {
   return new Promise((resolve, reject) => {
@@ -241,8 +230,8 @@ async function sendMessage() {
 
 async function deleteMessage(id) {
   const div = document.getElementById('mbox-' + id)
-  div.classList.remove('bg-white')
-  div.classList.add('bg-gray-100')
+  div.classList.remove('bg-green-500')
+  div.classList.add('bg-green-600')
   timeOutId = setTimeout(async () => {
     const socketMessage = {
       Type: 'Delete-Message',
@@ -257,8 +246,8 @@ async function deleteMessage(id) {
 async function deleteCancel(id) {
   clearTimeout(timeOutId)
   const div = document.getElementById('mbox-' + id)
-  div.classList.remove('bg-gray-100')
-  div.classList.add('bg-white')
+  div.classList.remove('bg-green-600')
+  div.classList.add('bg-green-500')
 }
 
 function messageTime(time) {
@@ -270,12 +259,25 @@ function messageTime(time) {
 
 onMounted(async () => {
   isLoading.value = true
-  socket.connect()
+
   window.addEventListener('new-message', onNewMessage)
   window.addEventListener('new-seen', onSeen)
   window.addEventListener('user-join', onUserJoin)
   window.addEventListener('delete-message', onDeleteMessage)
   await GetChat()
+  socket.connect()
+  if (notSeenMessageIds.value.length > 0) {
+    const socketMessage = {
+      Type: 'seen',
+      Payload: {
+        Ids: notSeenMessageIds.value,
+        ChatId: Number(route.params.cid),
+      },
+      Sender: { Id: Number(userId), Name: userName },
+    }
+    socket.sendMessage(socketMessage)
+  }
+
   initModals()
   isLoading.value = false
 })
@@ -358,7 +360,7 @@ onUnmounted(() => {
         >
           {{ key }}
         </p>
-        <div class="px-3 py-2 space-y-3">
+        <div class="px-1 py-2 space-y-3">
           <div v-for="message in messages" :key="message" :id="`${message.Id}`">
             <div
               v-if="message.IsSystem"
@@ -377,7 +379,7 @@ onUnmounted(() => {
                 alt="Jese image"
               />
               <div
-                class="flex flex-col w-fit max-w-[250px] lg:max-w-[360px] leading-1.5 px-1.5 py-1 bg-white rounded-r-xl rounded-tl-xl"
+                class="flex flex-col w-fit max-w-[250px] md:max-w-[360px] leading-1.5 px-1.5 py-1 bg-white rounded-r-xl rounded-tl-xl"
               >
                 <div class="px-1.5">
                   <span class="text-sm font-semibold text-green-500 dark:text-white">{{
@@ -388,7 +390,7 @@ onUnmounted(() => {
                 <img
                   v-if="message.ImageString != ''"
                   :src="`data:image/png;base64,${message.ImageString}`"
-                  class="bg-gray-800 rounded-lg mt-1 inset-shadow-lg"
+                  class="bg-gray-800 rounded-lg my-1 inset-shadow-lg"
                 />
                 <div class="px-1.5">
                   <div class="flex space-x-3">
@@ -413,12 +415,12 @@ onUnmounted(() => {
                 :id="`mbox-${message.Id}`"
                 @mousedown.prevent="message.IsDeleted == false ? deleteMessage(message.Id) : null"
                 @mouseup="deleteCancel(message.Id)"
-                class="flex flex-col w-fit max-w-[250px] lg:max-w-[360px] leading-1.5 px-1.5 py-1 bg-green-500 rounded-l-xl rounded-tr-xl"
+                class="flex flex-col w-fit max-w-[250px] md:max-w-[360px] leading-1.5 px-1.5 py-1 bg-green-500 rounded-l-xl rounded-tr-xl"
               >
                 <img
                   v-if="message.ImageString != ''"
                   :src="`data:image/png;base64,${message.ImageString}`"
-                  class="rounded-lg bg-gray-800 inset-shadow-2xl"
+                  class="rounded-lg bg-gray-800 inset-shadow-2xl mb-1"
                 />
                 <div class="px-1.5">
                   <div class="flex space-x-3">
@@ -465,11 +467,10 @@ onUnmounted(() => {
       <input
         name="message"
         v-model="newMessage"
-        class="text-gray-900 placeholder-gray-500 me-1.5 grow bg-gray-200 rounded-full p-2 px-3 focus:ring-green-500 border-0"
+        class="text-gray-900 placeholder-gray-500 me-1.5 grow bg-gray-200 rounded-full p-2 px-3 focus:ring-green-500 border-0 placeholder:truncate"
         type="text"
         placeholder="Type your message here..."
       />
-      <!-- <input type="file" @change="fileChange" /> -->
 
       <button
         type="submit"

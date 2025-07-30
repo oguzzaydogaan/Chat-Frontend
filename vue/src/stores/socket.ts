@@ -76,7 +76,6 @@ export const useSocketStore = defineStore('socket', {
 
     sendMessage(socketMessage: any) {
       if (this.socket && this.socket.readyState === WebSocket.OPEN) {
-        console.log(JSON.stringify(socketMessage))
         this.socket.send(JSON.stringify(socketMessage))
       } else {
         alert('WebSocket closed or not connected')

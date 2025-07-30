@@ -73,7 +73,6 @@ async function onDeleteMessage(event) {
 }
 
 async function onNewChat(event) {
-  console.log(event)
   if (event.detail.Sender.Id == Number(userId)) {
     router.push(`/messages/${event.detail.Payload.Chat.Id}`)
   } else {
@@ -201,12 +200,12 @@ onUnmounted(() => {
         </button>
         <!-- Dropdown menu -->
         <div
-          class="z-50 hidden my-4 text-base list-none bg-gray-200 divide-y divide-gray-100 rounded-lg shadow-lg dark:bg-gray-700 dark:divide-gray-600"
+          class="z-50 hidden my-4 text-base max-w-[150px] list-none bg-gray-200 divide-y divide-gray-100 rounded-lg shadow-lg dark:bg-gray-700 dark:divide-gray-600"
           id="user-dropdown"
         >
           <div class="px-4 py-3 border-b border-gray-300 dark:border-gray-600">
             <span class="block text-sm text-gray-900 dark:text-white">{{ uname }}</span>
-            <span class="block text-sm text-gray-500 truncate dark:text-gray-400">{{ email }}</span>
+            <span class="block text-xs text-gray-500 truncate dark:text-gray-400">{{ email }}</span>
           </div>
           <ul class="" aria-labelledby="user-menu-button">
             <li>

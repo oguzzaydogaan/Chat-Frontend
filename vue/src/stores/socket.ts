@@ -18,6 +18,7 @@ export const useSocketStore = defineStore('socket', {
 
       this.socket.onopen = () => {
         this.isConnected = true
+        console.log('Ws on.')
       }
 
       this.socket.onmessage = async (event: MessageEvent) => {
@@ -75,10 +76,18 @@ export const useSocketStore = defineStore('socket', {
     },
 
     sendMessage(socketMessage: any) {
-      if (this.socket && this.socket.readyState === WebSocket.OPEN) {
+      if (this.socket?.readyState === WebSocket.OPEN) {
         this.socket.send(JSON.stringify(socketMessage))
+      } else if (this.socket?.readyState === WebSocket.CONNECTING) {
+        this.socket.addEventListener(
+          'open',
+          () => {
+            this.socket?.send(JSON.stringify(socketMessage))
+          },
+          { once: true },
+        )
       } else {
-        alert('WebSocket closed or not connected')
+        alert('Connection error. Please refresh the page.')
       }
     },
 

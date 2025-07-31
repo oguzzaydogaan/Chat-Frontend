@@ -12,6 +12,7 @@ const userName = localStorage.getItem('name')
 const socket = useSocketStore()
 const scrollHere = ref()
 const files = ref()
+const fileInput = ref()
 const messages = ref()
 const messagesWithDates = ref({})
 const notSeenMessageIds = ref([])
@@ -87,7 +88,6 @@ async function onSeen(event) {
       })
     })
   })
-  console.log('hello')
 }
 async function onNewMessage(event) {
   if (event.detail.ChatId == Number(route.params.cid)) {
@@ -100,7 +100,7 @@ async function onNewMessage(event) {
         Type: 'seen',
         Payload: {
           Ids: [event.detail.Id],
-          ChatId: event.detail.ChatId,
+          Id: event.detail.ChatId,
         },
         Sender: { Id: Number(userId), Name: userName },
       }
@@ -142,7 +142,7 @@ async function onUserJoin(event) {
       Type: 'seen',
       Payload: {
         Ids: [event.detail.Payload.Message.Id],
-        ChatId: event.detail.Payload.Message.ChatId,
+        Id: event.detail.Payload.Message.ChatId,
       },
       Sender: { Id: Number(userId), Name: userName },
     }
@@ -168,8 +168,10 @@ async function addUser() {
     const socketMessage = {
       Type: 'User-Join',
       Payload: {
-        UserId: Number(selectedUser),
-        ChatId: Number(route.params.cid),
+        Message: {
+          UserId: Number(selectedUser),
+          ChatId: Number(route.params.cid),
+        },
       },
       Sender: { Id: Number(userId), Name: userName },
     }
@@ -183,6 +185,7 @@ function removeFocus() {
 
 async function fileChange(event) {
   files.value = event.target.files[0]
+  fileInput.value.value = null
 }
 async function fileToBytes(file) {
   return new Promise((resolve, reject) => {
@@ -217,10 +220,12 @@ async function sendMessage() {
   const socketMessage = {
     Type: 'Send-Message',
     Payload: {
-      UserId: Number(userId),
-      ChatId: Number(route.params.cid),
-      Content: newMessage.value,
-      ImageString: base64Image ?? '',
+      Message: {
+        UserId: Number(userId),
+        ChatId: Number(route.params.cid),
+        Content: newMessage.value,
+        ImageString: base64Image ?? '',
+      },
     },
   }
   socket.sendMessage(socketMessage)
@@ -236,7 +241,7 @@ async function deleteMessage(id) {
     const socketMessage = {
       Type: 'Delete-Message',
       Payload: {
-        MessageId: id,
+        Id: id,
       },
       Sender: { Id: Number(userId), Name: userName },
     }
@@ -270,7 +275,7 @@ onMounted(async () => {
       Type: 'seen',
       Payload: {
         Ids: notSeenMessageIds.value,
-        ChatId: Number(route.params.cid),
+        Id: Number(route.params.cid),
       },
       Sender: { Id: Number(userId), Name: userName },
     }
@@ -461,7 +466,7 @@ onUnmounted(() => {
         <div class="flex flex-col items-center justify-center">
           <span class="material-symbols-outlined text-gray-500"> attach_file </span>
         </div>
-        <input @change="fileChange" id="dropzone-file" type="file" class="hidden" />
+        <input @change="fileChange" ref="fileInput" id="dropzone-file" type="file" class="hidden" />
       </label>
       <input
         name="message"

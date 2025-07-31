@@ -18,7 +18,6 @@ export const useSocketStore = defineStore('socket', {
 
       this.socket.onopen = () => {
         this.isConnected = true
-        console.log('Ws on.')
       }
 
       this.socket.onmessage = async (event: MessageEvent) => {

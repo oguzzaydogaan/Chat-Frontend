@@ -259,13 +259,12 @@ function messageTime(time) {
 
 onMounted(async () => {
   isLoading.value = true
-
+  await GetChat()
+  socket.connect()
   window.addEventListener('new-message', onNewMessage)
   window.addEventListener('new-seen', onSeen)
   window.addEventListener('user-join', onUserJoin)
   window.addEventListener('delete-message', onDeleteMessage)
-  await GetChat()
-  socket.connect()
   if (notSeenMessageIds.value.length > 0) {
     const socketMessage = {
       Type: 'seen',

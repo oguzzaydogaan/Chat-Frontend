@@ -5,13 +5,15 @@ import { onMounted, ref, onUnmounted, nextTick } from 'vue'
 import { useSocketStore } from '@/stores/socket'
 import axios from '@/plugins/axios'
 import Multiselect from 'vue-multiselect'
+import { RequestEventType } from '@/assets/js/enums'
+import alerts from '@/assets/js/alerts'
 
 const route = useRoute()
 const userId = localStorage.getItem('userId')
 const userName = localStorage.getItem('name')
 const socket = useSocketStore()
 const scrollHere = ref()
-const files = ref()
+const base64 = ref()
 const fileInput = ref()
 const messages = ref()
 const messagesWithDates = ref({})
@@ -97,7 +99,7 @@ async function onNewMessage(event) {
     messagesWithDates.value['Today'].push(event.detail)
     if (event.detail.Sender.Id != Number(userId)) {
       const socketMessage = {
-        Type: 'seen',
+        Type: RequestEventType.Message_See,
         Payload: {
           Ids: [event.detail.Id],
           Id: event.detail.ChatId,
@@ -117,7 +119,7 @@ async function onDeleteMessage(event) {
     messagesWithDates.value[key][idx] = event.detail
     if (event.detail.Sender.Id != Number(userId)) {
       const socketMessage = {
-        Type: 'seen',
+        Type: RequestEventType.Message_See,
         Payload: {
           Ids: [event.detail.Id],
           ChatId: event.detail.ChatId,
@@ -139,7 +141,7 @@ async function onUserJoin(event) {
   users.value = event.detail.Payload.Chat.Users
   if (event.detail.Sender.Id != Number(userId)) {
     const socketMessage = {
-      Type: 'seen',
+      Type: RequestEventType.Message_See,
       Payload: {
         Ids: [event.detail.Payload.Message.Id],
         Id: event.detail.Payload.Message.ChatId,
@@ -166,7 +168,7 @@ async function addUser() {
   const selectedUser = multiselectSelected.value.id
   if (selectedUser) {
     const socketMessage = {
-      Type: 'User-Join',
+      Type: RequestEventType.Chat_AddUser,
       Payload: {
         Message: {
           UserId: Number(selectedUser),
@@ -184,53 +186,44 @@ function removeFocus() {
 }
 
 async function fileChange(event) {
-  files.value = event.target.files[0]
-  fileInput.value.value = null
+  if (event.target.files[0]) {
+    if (event.target.files[0].size > 2048 * 1024) {
+      await alerts.errorToast('Choose an image smaller than 2Mb')
+      fileInput.value.value = null
+      return
+    }
+    base64.value = await fileToBase64(event.target.files[0])
+  }
 }
-async function fileToBytes(file) {
+async function fileToBase64(file) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader()
-
-    reader.onload = () => {
-      const arrayBuffer = reader.result
-      const byteArray = new Uint8Array(arrayBuffer)
-      resolve(byteArray)
-    }
-
-    reader.onerror = reject
-
-    reader.readAsArrayBuffer(file)
+    reader.onload = () => resolve(reader.result)
+    reader.onerror = () => reject(reader.error)
+    reader.readAsDataURL(file)
   })
 }
 
-function bytesToBase64(bytes) {
-  return btoa(String.fromCharCode(...bytes))
-}
-
 async function sendMessage() {
-  if ((!newMessage.value || !newMessage.value.trim()) && !files.value) {
+  if ((!newMessage.value || !newMessage.value.trim()) && !base64.value) {
     newMessage.value = ''
     return
   }
-  let base64Image = null
-  if (files.value) {
-    const bytes = await fileToBytes(files.value)
-    base64Image = bytesToBase64(bytes)
-  }
   const socketMessage = {
-    Type: 'Send-Message',
+    Type: RequestEventType.Message_Send,
     Payload: {
       Message: {
         UserId: Number(userId),
         ChatId: Number(route.params.cid),
         Content: newMessage.value,
-        ImageString: base64Image ?? '',
+        ImageString: base64.value ?? '',
       },
     },
   }
   socket.sendMessage(socketMessage)
   newMessage.value = ''
-  files.value = null
+  base64.value = null
+  fileInput.value.value = null
 }
 
 async function deleteMessage(id) {
@@ -239,7 +232,7 @@ async function deleteMessage(id) {
   div.classList.add('bg-green-600')
   timeOutId = setTimeout(async () => {
     const socketMessage = {
-      Type: 'Delete-Message',
+      Type: RequestEventType.Message_Delete,
       Payload: {
         Id: id,
       },
@@ -272,7 +265,7 @@ onMounted(async () => {
   window.addEventListener('delete-message', onDeleteMessage)
   if (notSeenMessageIds.value.length > 0) {
     const socketMessage = {
-      Type: 'seen',
+      Type: RequestEventType.Message_See,
       Payload: {
         Ids: notSeenMessageIds.value,
         Id: Number(route.params.cid),
@@ -393,7 +386,7 @@ onUnmounted(() => {
 
                 <img
                   v-if="message.ImageString != ''"
-                  :src="`data:image/png;base64,${message.ImageString}`"
+                  :src="`${message.ImageString}`"
                   class="bg-gray-800 rounded-lg my-1 inset-shadow-lg"
                 />
                 <div class="px-1.5">
@@ -423,7 +416,7 @@ onUnmounted(() => {
               >
                 <img
                   v-if="message.ImageString != ''"
-                  :src="`data:image/png;base64,${message.ImageString}`"
+                  :src="`${message.ImageString}`"
                   class="rounded-lg bg-gray-800 inset-shadow-2xl mb-1"
                 />
                 <div class="px-1.5">

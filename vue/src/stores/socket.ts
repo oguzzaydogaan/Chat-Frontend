@@ -1,6 +1,7 @@
 import alerts from '@/assets/js/alerts'
 import router from '@/router'
 import { defineStore } from 'pinia'
+import { ResponseEventType } from '@/assets/js/enums'
 
 export const useSocketStore = defineStore('socket', {
   state: () => ({
@@ -23,19 +24,19 @@ export const useSocketStore = defineStore('socket', {
       this.socket.onmessage = async (event: MessageEvent) => {
         try {
           const data = JSON.parse(event.data)
-          if (data.Type == 'seen') {
+          if (data.Type == ResponseEventType.Message_Seen) {
             window.dispatchEvent(new CustomEvent('new-seen', { detail: data.Payload.MessageReads }))
-          } else if (data.Type == 'Send-Message') {
+          } else if (data.Type == ResponseEventType.Message_Sent) {
             window.dispatchEvent(new CustomEvent('new-message', { detail: data.Payload.Message }))
-          } else if (data.Type == 'Delete-Message') {
+          } else if (data.Type == ResponseEventType.Message_Deleted) {
             window.dispatchEvent(
               new CustomEvent('delete-message', { detail: data.Payload.Message }),
             )
-          } else if (data.Type == 'New-Chat') {
+          } else if (data.Type == ResponseEventType.Chat_Created) {
             window.dispatchEvent(new CustomEvent('new-chat', { detail: data }))
-          } else if (data.Type == 'User-Join') {
+          } else if (data.Type == ResponseEventType.Chat_UserAdded) {
             window.dispatchEvent(new CustomEvent('user-join', { detail: data }))
-          } else if (data.Type == 'Error') {
+          } else if (data.Type == ResponseEventType.Error) {
             if (data.Payload.Chat.Id != -1) {
               router.push(`/messages/${data.Payload.Chat.Id}`)
             } else {

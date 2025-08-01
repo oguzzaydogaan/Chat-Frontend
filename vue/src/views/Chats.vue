@@ -6,6 +6,7 @@ import { useSocketStore } from '@/stores/socket'
 import axios from '@/plugins/axios'
 import Multiselect from 'vue-multiselect'
 import alerts from '@/assets/js/alerts'
+import { RequestEventType } from '@/assets/js/enums'
 
 const router = useRouter()
 const userId = localStorage.getItem('userId')
@@ -122,7 +123,7 @@ async function addGroupChat() {
   const selectedUsersIds = multiselectSelected.value.map((user) => user.id)
   selectedUsersIds.push(Number(userId))
   const socketMessage = {
-    Type: 'New-Chat',
+    Type: RequestEventType.Chat_Create,
     Payload: {
       Chat: {
         Name: chatName.value,
@@ -138,7 +139,7 @@ async function addPersonalChat() {
   const selectedUser = multiselectSelected.value.id
   if (selectedUser) {
     const socketMessage = {
-      Type: 'New-Chat',
+      Type: RequestEventType.Chat_Create,
       Payload: {
         Chat: {
           UserIds: [Number(userId), Number(selectedUser)],

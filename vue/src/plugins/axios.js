@@ -36,7 +36,7 @@ instance.interceptors.response.use(
   },
   async function (error) {
     if (!error.response) {
-      await alerts.errorAlert('Network error. Please check your connection.')
+      await alerts.errorAlert('Server status is closed.')
     } else if (error.response.status == 400) {
       await alerts.errorAlert(error.response.data || 'Bad request. Please try again.')
     } else if (error.response.status == 404) {

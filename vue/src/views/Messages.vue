@@ -122,7 +122,7 @@ async function onDeleteMessage(event) {
         Type: RequestEventType.Message_See,
         Payload: {
           Ids: [event.detail.Id],
-          ChatId: event.detail.ChatId,
+          Id: event.detail.ChatId,
         },
         Sender: { Id: Number(userId), Name: userName },
       }

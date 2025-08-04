@@ -1,40 +1,40 @@
 # 1. Aşama: Uygulamayı derle (Build Stage)
-# Node.js LTS (Uzun Süreli Destek) imajını temel alarak başlıyoruz.
-FROM node:lts-alpine AS build
+# Node.js LTS (uzun süreli destek) imajını kullanarak proje kaynak kodunu derle.
+FROM node:lts-alpine AS builder
 
-# Çalışma dizinini belirle
+# Konteyner içinde çalışma dizinini ayarla.
 WORKDIR /app
 
-# package.json ve package-lock.json dosyalarını kopyala.
-# Bu, sadece bağımlılıklar değiştiğinde 'npm install' adımının tekrar çalışmasını sağlar.
+# Sadece 'package.json' ve 'package-lock.json' dosyalarını kopyala.
+# Bu, bağımlılıklar değişmediği sürece 'npm install' adımının önbellekten çalışmasını sağlar ve build süresini kısaltır.
 COPY package*.json ./
 
-# Bağımlılıkları yükle
+# Proje bağımlılıklarını yükle.
 RUN npm install
 
-# Kalan tüm uygulama dosyalarını kopyala
+# Kalan tüm uygulama dosyalarını çalışma dizinine kopyala.
 COPY . .
 
-# Vue projesini derle. Bu komut 'dist' klasörünü oluşturacaktır.
-# Eğer 'npm run build' dışında farklı bir komut kullanıyorsanız, burayı güncelleyin.
+# Vue projesini üretim için derle.
+# Bu komut 'dist' adında bir klasör oluşturur.
 RUN npm run build
 
-# 2. Aşama: Uygulamayı çalıştırmak için NGINX'i kullan (Serve Stage)
-# Çok daha küçük ve güvenli olan NGINX imajını temel alıyoruz.
-FROM nginx:alpine
+# 2. Aşama: Uygulamayı NGINX ile çalıştır (Runtime Stage)
+# Derlenen statik dosyaları sunmak için çok daha hafif bir NGINX imajı kullan.
+FROM nginx:stable-alpine
 
-# NGINX'in varsayılan konfigürasyon dosyasını sil
+# NGINX'in varsayılan yapılandırma dosyasını sil.
 RUN rm /etc/nginx/conf.d/default.conf
 
-# Kendi NGINX konfigürasyon dosyamızı ekle.
-# Projenin ana dizininde 'nginx.conf' adında bir dosya oluşturmanız gerekecek.
+# Kendi özel NGINX yapılandırma dosyamızı kopyala.
+# Bu dosya, Vue Router gibi SPA'ler için gereklidir.
 COPY nginx.conf /etc/nginx/conf.d/
 
-# İlk aşamada oluşturulan 'dist' klasöründeki statik dosyaları NGINX'in sunacağı dizine kopyala
-COPY --from=build /app/dist /usr/share/nginx/html
+# İlk aşamada oluşturulan derlenmiş dosyaları (dist klasörü) NGINX'in sunacağı dizine kopyala.
+COPY --from=builder /app/dist /usr/share/nginx/html
 
-# 80 numaralı portu dışarıya aç
+# 80 numaralı portu dışarıya aç.
 EXPOSE 80
 
-# NGINX'i çalıştır
+# NGINX'i arka planda değil, ön planda çalıştır. Bu, konteynerin ayakta kalmasını sağlar.
 CMD ["nginx", "-g", "daemon off;"]

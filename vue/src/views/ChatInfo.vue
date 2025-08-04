@@ -64,7 +64,7 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <main>
+  <main class="h-full dark:bg-gray-900">
     <nav class="flex w-full bg-white dark:bg-gray-900 items-center justify-between mx-auto p-4">
       <RouterLink :to="`/messages/${route.params.cid}`" class="flex items-center hover:scale-110">
         <span class="material-symbols-outlined dark:text-white">
@@ -101,25 +101,15 @@ onUnmounted(() => {
     </div>
 
     <div class="relative min-h-[56.67px] px-4">
-      <LoadingOverlay
-        :active="isLoading"
-        :opacity="1"
-        :is-full-page="fullScreen"
-        :can-cancel="false"
-        background-color="#fff"
-        :z-index="50"
-        loader="dots"
-        :lock-scroll="true"
-        color="#10B981"
-      />
+      <Loading v-if="isLoading" :is-full-page="fullScreen" />
       <p
         v-for="user in users"
-        class="block font-bold border-b border-gray-300 dark:border-gray-400 dark:text-white p-4 hover:bg-gray-700"
+        class="block font-bold border-b hover:bg-green-100 border-gray-300 dark:border-gray-400 dark:text-white p-4 dark:hover:bg-gray-700"
       >
         {{ user.Name }}
       </p>
       <div v-if="users.length < 1 && isLoading == false" class="text-center text-gray-500 p-4">
-        No chats found.
+        No users found.
       </div>
     </div>
   </main>

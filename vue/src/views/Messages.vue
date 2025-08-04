@@ -7,6 +7,7 @@ import axios from '@/plugins/axios'
 import Multiselect from 'vue-multiselect'
 import { RequestEventType } from '@/assets/js/enums'
 import alerts from '@/assets/js/alerts'
+import ImageSend from '../components/ImageSend.vue'
 
 const route = useRoute()
 const userId = localStorage.getItem('userId')
@@ -25,7 +26,10 @@ const name = ref('')
 const multiselectSelected = ref([])
 const multiselectOptions = ref([])
 const isLoading = ref(false)
+const showImageSend = ref(false)
+const isScrolledUp = ref(false)
 var timeOutId = 0
+// const theme = ref(window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
 
 async function GetChat() {
   const response = await axios(`/chats/${route.params.cid}/users/${userId}`)
@@ -80,6 +84,11 @@ async function GetChat() {
   scrollHere.value.scrollIntoView({ behavior: 'smooth' })
 }
 
+async function onScroll(event) {
+  let distance = event.target.scrollHeight - event.target.scrollTop - event.target.clientHeight
+  isScrolledUp.value = distance > 100
+}
+
 async function onSeen(event) {
   event.detail.forEach((mr) => {
     Object.keys(messagesWithDates.value).forEach((dateKey) => {
@@ -107,6 +116,10 @@ async function onNewMessage(event) {
         Sender: { Id: Number(userId), Name: userName },
       }
       socket.sendMessage(socketMessage)
+    }
+    if (!isScrolledUp.value) {
+      await nextTick()
+      scrollHere.value.scrollIntoView({ behavior: 'smooth' })
     }
   }
 }
@@ -187,12 +200,13 @@ function removeFocus() {
 
 async function fileChange(event) {
   if (event.target.files[0]) {
-    if (event.target.files[0].size > 2048 * 1024) {
+    if (event.target.files[0].size > 4096 * 1024) {
       await alerts.errorToast('Choose an image smaller than 2Mb')
       fileInput.value.value = null
       return
     }
     base64.value = await fileToBase64(event.target.files[0])
+    showImageSend.value = true
   }
 }
 async function fileToBase64(file) {
@@ -204,9 +218,9 @@ async function fileToBase64(file) {
   })
 }
 
-async function sendMessage() {
-  if ((!newMessage.value || !newMessage.value.trim()) && !base64.value) {
-    newMessage.value = ''
+async function sendMessage(msg, img) {
+  if ((!msg || !msg.trim()) && !img) {
+    msg = ''
     return
   }
   const socketMessage = {
@@ -215,12 +229,19 @@ async function sendMessage() {
       Message: {
         UserId: Number(userId),
         ChatId: Number(route.params.cid),
-        Content: newMessage.value,
-        ImageString: base64.value ?? '',
+        Content: msg,
+        ImageString: img ?? '',
       },
     },
   }
   socket.sendMessage(socketMessage)
+  closeImageSendModal()
+}
+
+function closeImageSendModal() {
+  if (showImageSend.value) {
+    showImageSend.value = false
+  }
   newMessage.value = ''
   base64.value = null
   fileInput.value.value = null
@@ -287,11 +308,19 @@ onUnmounted(() => {
 </script>
 
 <template>
+  <ImageSend
+    v-if="showImageSend"
+    :img="base64"
+    :msg="newMessage"
+    @send-image="sendMessage"
+    @close="closeImageSendModal"
+  />
+
   <main class="h-screen flex flex-col justify-between">
     <nav
       class="flex w-full bg-white dark:bg-gray-900 items-center justify-between mx-auto p-4 gap-x-4"
     >
-      <RouterLink to="/" class="flex items-center hover:scale-110">
+      <RouterLink to="/" class="flex items-center hover:scale-110 cursor-pointer">
         <span class="material-symbols-outlined dark:text-white">
           arrow_back_ios_new
         </span></RouterLink
@@ -299,17 +328,18 @@ onUnmounted(() => {
 
       <RouterLink
         :to="`/info/${route.params.cid}`"
-        class="text-2xl font-semibold overflow-hidden dark:text-white text-center"
+        class="text-2xl font-semibold overflow-hidden dark:text-white text-black text-center"
         >{{ name }}</RouterLink
       >
       <button
         v-if="users.length > 2"
-        class="flex items-center hover:scale-110"
+        class="flex items-center hover:scale-110 cursor-pointer"
         @click="multiselectGetUsers()"
         data-modal-target="add-user-modal"
         data-modal-toggle="add-user-modal"
       >
-        <span class="material-symbols-outlined text-green-500 hover:text-green-600"
+        <span
+          class="material-symbols-outlined text-green-500 hover:text-green-600 dark:text-green-600 dark:hover:text-green-700"
           >add_circle</span
         >
       </button>
@@ -354,7 +384,7 @@ onUnmounted(() => {
       <div v-if="users.length <= 2" class="w-[24px]"></div>
     </nav>
 
-    <div class="grow pt-2 overflow-y-auto bg-gray-100 dark:bg-gray-800">
+    <div @scroll="onScroll" class="grow pt-2 overflow-y-auto bg-gray-100 dark:bg-gray-800">
       <div v-for="(messages, key) in messagesWithDates" :key="key" :customname="key">
         <p
           class="sticky top-0 text-center w-fit mx-auto px-2 py-0.5 rounded-full bg-gray-400 dark:bg-gray-700 shadow-lg text-sm font-bold text-white"
@@ -365,7 +395,7 @@ onUnmounted(() => {
           <div v-for="message in messages" :key="message" :id="`${message.Id}`">
             <div
               v-if="message.IsSystem"
-              class="text-center text-xs w-fit justify-self-center bg-amber-100 dark:bg-amber-200 px-2 rounded-full py-[1px] text-gray-400 dark:text-gray-500 shadow-sm"
+              class="text-center text-xs w-fit justify-self-center bg-amber-100 dark:bg-amber-200 px-2 rounded-full py-[1px] text-gray-400 dark:text-gray-600 shadow-sm"
             >
               {{ message.Content }}
             </div>
@@ -380,10 +410,10 @@ onUnmounted(() => {
                 alt="Jese image"
               />
               <div
-                class="flex flex-col w-fit max-w-[250px] md:max-w-[360px] leading-1.5 px-1.5 py-1 bg-white rounded-r-xl rounded-tl-xl"
+                class="flex flex-col w-fit max-w-[250px] md:max-w-[360px] leading-1.5 px-1.5 py-1 bg-white dark:bg-gray-700 rounded-r-xl rounded-tl-xl"
               >
                 <div class="px-1.5">
-                  <span class="text-sm font-semibold text-green-500 dark:text-white">{{
+                  <span class="text-sm font-semibold text-green-500">{{
                     message.Sender.Name
                   }}</span>
                 </div>
@@ -400,7 +430,7 @@ onUnmounted(() => {
                     >
                       {{ message.Content }}
                     </p>
-                    <span class="text-xs font-normal text-gray-400 dark:text-gray-400 self-end">{{
+                    <span class="text-xs font-normal text-gray-400 dark:text-gray-300 self-end">{{
                       messageTime(message.Time)
                     }}</span>
                   </div>
@@ -453,7 +483,7 @@ onUnmounted(() => {
     </div>
 
     <form
-      @submit.prevent="sendMessage"
+      @submit.prevent="sendMessage(newMessage, base64)"
       class="flex justify-between items-center pr-3 py-3 bg-white dark:bg-gray-900 border-t-2 border-gray-200 dark:border-0"
     >
       <label
@@ -468,29 +498,19 @@ onUnmounted(() => {
       <input
         name="message"
         v-model="newMessage"
-        class="text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 me-1.5 grow bg-gray-200 dark:bg-gray-700 rounded-full p-2 px-3 focus:ring-green-500 border-0 placeholder:truncate"
+        class="text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 me-1.5 grow bg-gray-200 dark:bg-gray-700 rounded-full p-2 px-3 focus:ring-green-500 border-0 placeholder:overflow-hidden"
         type="text"
         placeholder="Type your message here..."
       />
 
       <button
         type="submit"
-        class="bg-green-500 dark:bg-green-600 hover:bg-green-600 dark:hover:bg-green-700 block text-white rounded-full w-[40px] h-[40px] transition-all duration-300"
+        class="bg-green-500 dark:bg-green-600 hover:bg-green-600 dark:hover:bg-green-700 block text-white rounded-full w-[40px] h-[40px] cursor-pointer"
       >
         <i class="bi bi-send text-2xl"></i>
       </button>
     </form>
 
-    <LoadingOverlay
-      :active="isLoading"
-      :opacity="1"
-      :is-full-page="true"
-      :can-cancel="false"
-      background-color="#fff"
-      :z-index="50"
-      loader="dots"
-      :lock-scroll="true"
-      color="#10B981"
-    />
+    <Loading v-if="isLoading" :is-full-page="true" />
   </main>
 </template>

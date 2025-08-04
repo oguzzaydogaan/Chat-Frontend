@@ -178,7 +178,7 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <main>
+  <main class="h-full dark:bg-gray-900">
     <nav class="flex flex-wrap w-full items-center justify-between mx-auto p-4">
       <div class="flex items-center space-x-1 rtl:space-x-reverse">
         <span class="text-2xl font-semibold whitespace-nowrap dark:text-white">Chats</span>
@@ -257,7 +257,7 @@ onUnmounted(() => {
         data-dropdown-toggle="add-chat-dropdown"
       >
         <span
-          class="material-symbols-outlined text-green-500 hover:text-green-600"
+          class="material-symbols-outlined text-green-500 hover:text-green-600 dark:text-green-600 dark:hover:text-green-700"
           style="font-size: 30px"
           >add_circle</span
         >
@@ -367,21 +367,11 @@ onUnmounted(() => {
     </div>
 
     <div class="relative min-h-[56.67px] px-4">
-      <LoadingOverlay
-        :active="isLoading"
-        :opacity="1"
-        :is-full-page="fullScreen"
-        :can-cancel="false"
-        background-color="#fff"
-        :z-index="50"
-        loader="dots"
-        :lock-scroll="true"
-        color="#10B981"
-      />
+      <Loading v-if="isLoading" :is-full-page="fullScreen" />
       <RouterLink
         v-for="chat in chats"
         :to="`/messages/${chat.id}`"
-        class="block border-b border-gray-300 dark:border-gray-400 p-4 hover:bg-green-100 dark:hover:bg-gray-700 text-white"
+        class="block border-b border-gray-300 dark:border-gray-400 p-4 hover:bg-green-100 dark:hover:bg-gray-700 dark:text-white"
       >
         <div class="font-bold flex justify-between items-center">
           <p>{{ chat.name }}</p>

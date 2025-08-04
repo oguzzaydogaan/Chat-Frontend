@@ -381,7 +381,7 @@ onUnmounted(() => {
       <RouterLink
         v-for="chat in chats"
         :to="`/messages/${chat.id}`"
-        class="block border-b border-gray-300 p-4 hover:bg-green-100"
+        class="block border-b border-gray-300 dark:border-gray-400 p-4 hover:bg-green-100 dark:hover:bg-gray-700 text-white"
       >
         <div class="font-bold flex justify-between items-center">
           <p>{{ chat.name }}</p>

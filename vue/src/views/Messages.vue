@@ -288,9 +288,13 @@ onUnmounted(() => {
 
 <template>
   <main class="h-screen flex flex-col justify-between">
-    <nav class="flex w-full bg-white items-center justify-between mx-auto p-4 gap-x-4">
+    <nav
+      class="flex w-full bg-white dark:bg-gray-900 items-center justify-between mx-auto p-4 gap-x-4"
+    >
       <RouterLink to="/" class="flex items-center hover:scale-110">
-        <span class="material-symbols-outlined"> arrow_back_ios_new </span></RouterLink
+        <span class="material-symbols-outlined dark:text-white">
+          arrow_back_ios_new
+        </span></RouterLink
       >
 
       <RouterLink
@@ -350,10 +354,10 @@ onUnmounted(() => {
       <div v-if="users.length <= 2" class="w-[24px]"></div>
     </nav>
 
-    <div class="grow pt-2 overflow-y-auto bg-gray-100">
+    <div class="grow pt-2 overflow-y-auto bg-gray-100 dark:bg-gray-800">
       <div v-for="(messages, key) in messagesWithDates" :key="key" :customname="key">
         <p
-          class="sticky top-0 text-center w-fit mx-auto px-2 py-0.5 rounded-full bg-gray-400 shadow-lg text-sm font-bold text-white"
+          class="sticky top-0 text-center w-fit mx-auto px-2 py-0.5 rounded-full bg-gray-400 dark:bg-gray-700 shadow-lg text-sm font-bold text-white"
         >
           {{ key }}
         </p>
@@ -361,7 +365,7 @@ onUnmounted(() => {
           <div v-for="message in messages" :key="message" :id="`${message.Id}`">
             <div
               v-if="message.IsSystem"
-              class="text-center text-xs w-fit justify-self-center bg-amber-100 px-2 rounded-full text-gray-500 shadow-sm"
+              class="text-center text-xs w-fit justify-self-center bg-amber-100 dark:bg-amber-200 px-2 rounded-full py-[1px] text-gray-400 dark:text-gray-500 shadow-sm"
             >
               {{ message.Content }}
             </div>
@@ -412,7 +416,7 @@ onUnmounted(() => {
                 :id="`mbox-${message.Id}`"
                 @mousedown.prevent="message.IsDeleted == false ? deleteMessage(message.Id) : null"
                 @mouseup="deleteCancel(message.Id)"
-                class="flex flex-col w-fit max-w-[250px] md:max-w-[360px] leading-1.5 px-1.5 py-1 bg-green-500 rounded-l-xl rounded-tr-xl"
+                class="flex flex-col w-fit max-w-[250px] md:max-w-[360px] leading-1.5 px-1.5 py-1 bg-green-500 dark:bg-green-700 rounded-l-xl rounded-tr-xl"
               >
                 <img
                   v-if="message.ImageString != ''"
@@ -429,7 +433,7 @@ onUnmounted(() => {
                     </p>
                     <span
                       style="-webkit-user-select: none; user-select: none"
-                      class="text-xs font-normal text-white dark:text-gray-400 self-end"
+                      class="text-xs font-normal text-white dark:text-gray-200 self-end"
                       >{{ messageTime(message.Time) }}</span
                     >
                   </div>
@@ -450,7 +454,7 @@ onUnmounted(() => {
 
     <form
       @submit.prevent="sendMessage"
-      class="flex justify-between items-center pr-3 py-3 bg-white border-t-2 border-gray-200"
+      class="flex justify-between items-center pr-3 py-3 bg-white dark:bg-gray-900 border-t-2 border-gray-200 dark:border-0"
     >
       <label
         for="dropzone-file"
@@ -464,14 +468,14 @@ onUnmounted(() => {
       <input
         name="message"
         v-model="newMessage"
-        class="text-gray-900 placeholder-gray-500 me-1.5 grow bg-gray-200 rounded-full p-2 px-3 focus:ring-green-500 border-0 placeholder:truncate"
+        class="text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 me-1.5 grow bg-gray-200 dark:bg-gray-700 rounded-full p-2 px-3 focus:ring-green-500 border-0 placeholder:truncate"
         type="text"
         placeholder="Type your message here..."
       />
 
       <button
         type="submit"
-        class="bg-green-500 block text-white rounded-full w-[40px] h-[40px] hover:bg-green-600 transition-all duration-300"
+        class="bg-green-500 dark:bg-green-600 hover:bg-green-600 dark:hover:bg-green-700 block text-white rounded-full w-[40px] h-[40px] transition-all duration-300"
       >
         <i class="bi bi-send text-2xl"></i>
       </button>

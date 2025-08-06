@@ -26,5 +26,5 @@ COPY --from=builder /app/dist /usr/share/nginx/html
 # COPY nginx.conf /etc/nginx/conf.d/default.conf
 
 # Nginx'i başlat
-EXPOSE 80
+EXPOSE 4001
 CMD ["nginx", "-g", "daemon off;"]

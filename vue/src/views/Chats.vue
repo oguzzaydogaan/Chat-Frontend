@@ -178,7 +178,7 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <main class="h-dvh dark:bg-gray-900">
+  <main class="h-full dark:bg-gray-900">
     <nav class="flex flex-wrap w-full items-center justify-between mx-auto p-4">
       <div class="flex items-center space-x-1 rtl:space-x-reverse">
         <span class="text-2xl font-semibold whitespace-nowrap dark:text-white">Chats</span>

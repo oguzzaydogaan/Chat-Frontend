@@ -316,7 +316,7 @@ onUnmounted(() => {
     @close="closeImageSendModal"
   />
 
-  <main class="h-dvh flex flex-col justify-between">
+  <main class="h-full flex flex-col justify-between">
     <nav
       class="flex w-full bg-white dark:bg-gray-900 items-center justify-between mx-auto p-4 gap-x-4"
     >

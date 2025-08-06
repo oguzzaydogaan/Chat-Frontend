@@ -6,6 +6,7 @@ import { useSocketStore } from '@/stores/socket'
 import axios from '@/plugins/axios'
 import Multiselect from 'vue-multiselect'
 import alerts from '@/assets/js/alerts'
+import { RequestEventType } from '@/assets/js/enums'
 
 const router = useRouter()
 const userId = localStorage.getItem('userId')
@@ -47,7 +48,9 @@ async function onNewMessage(event) {
   const index = chats.value.findIndex((c) => c.id == event.detail.ChatId)
   if (index != -1) {
     const chat = chats.value[index]
-    chat.count += 1
+    if (chat.count != -1) {
+      chat.count += 1
+    }
     if (index != 0) {
       chats.value.splice(index, 1)
       chats.value.splice(0, 0, chat)
@@ -71,7 +74,6 @@ async function onDeleteMessage(event) {
 }
 
 async function onNewChat(event) {
-  console.log(event)
   if (event.detail.Sender.Id == Number(userId)) {
     router.push(`/messages/${event.detail.Payload.Chat.Id}`)
   } else {
@@ -90,7 +92,9 @@ async function onUserJoin(event) {
   }
   let chat = chats.value.find((c) => c.id == event.detail.Payload.Chat.Id)
   if (chat) {
-    chat.count += 1
+    if (chat.count != -1) {
+      chat.count += 1
+    }
     let index = chats.value.indexOf(chat)
     chats.value.splice(index, 1)
     chats.value.splice(0, 0, chat)
@@ -119,7 +123,7 @@ async function addGroupChat() {
   const selectedUsersIds = multiselectSelected.value.map((user) => user.id)
   selectedUsersIds.push(Number(userId))
   const socketMessage = {
-    Type: 'New-Chat',
+    Type: RequestEventType.Chat_Create,
     Payload: {
       Chat: {
         Name: chatName.value,
@@ -135,7 +139,7 @@ async function addPersonalChat() {
   const selectedUser = multiselectSelected.value.id
   if (selectedUser) {
     const socketMessage = {
-      Type: 'New-Chat',
+      Type: RequestEventType.Chat_Create,
       Payload: {
         Chat: {
           UserIds: [Number(userId), Number(selectedUser)],
@@ -174,7 +178,7 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <main>
+  <main class="h-full dark:bg-gray-900">
     <nav class="flex flex-wrap w-full items-center justify-between mx-auto p-4">
       <div class="flex items-center space-x-1 rtl:space-x-reverse">
         <span class="text-2xl font-semibold whitespace-nowrap dark:text-white">Chats</span>
@@ -197,12 +201,12 @@ onUnmounted(() => {
         </button>
         <!-- Dropdown menu -->
         <div
-          class="z-50 hidden my-4 text-base list-none bg-gray-200 divide-y divide-gray-100 rounded-lg shadow-lg dark:bg-gray-700 dark:divide-gray-600"
+          class="z-50 hidden my-4 text-base max-w-[150px] list-none bg-gray-200 divide-y divide-gray-100 rounded-lg shadow-lg dark:bg-gray-700 dark:divide-gray-600"
           id="user-dropdown"
         >
           <div class="px-4 py-3 border-b border-gray-300 dark:border-gray-600">
             <span class="block text-sm text-gray-900 dark:text-white">{{ uname }}</span>
-            <span class="block text-sm text-gray-500 truncate dark:text-gray-400">{{ email }}</span>
+            <span class="block text-xs text-gray-500 truncate dark:text-gray-400">{{ email }}</span>
           </div>
           <ul class="" aria-labelledby="user-menu-button">
             <li>
@@ -253,7 +257,7 @@ onUnmounted(() => {
         data-dropdown-toggle="add-chat-dropdown"
       >
         <span
-          class="material-symbols-outlined text-green-500 hover:text-green-600"
+          class="material-symbols-outlined text-green-500 hover:text-green-600 dark:text-green-600 dark:hover:text-green-700"
           style="font-size: 30px"
           >add_circle</span
         >
@@ -363,21 +367,11 @@ onUnmounted(() => {
     </div>
 
     <div class="relative min-h-[56.67px] px-4">
-      <LoadingOverlay
-        :active="isLoading"
-        :opacity="1"
-        :is-full-page="fullScreen"
-        :can-cancel="false"
-        background-color="#fff"
-        :z-index="50"
-        loader="dots"
-        :lock-scroll="true"
-        color="#10B981"
-      />
+      <Loading v-if="isLoading" :is-full-page="fullScreen" />
       <RouterLink
         v-for="chat in chats"
         :to="`/messages/${chat.id}`"
-        class="block border-b border-gray-300 p-4 hover:bg-green-100"
+        class="block border-b border-gray-300 dark:border-gray-400 p-4 hover:bg-green-100 dark:hover:bg-gray-700 dark:text-white"
       >
         <div class="font-bold flex justify-between items-center">
           <p>{{ chat.name }}</p>

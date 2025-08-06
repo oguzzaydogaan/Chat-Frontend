@@ -64,10 +64,12 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <main>
-    <nav class="flex w-full bg-white items-center justify-between mx-auto p-4">
+  <main class="h-full dark:bg-gray-900">
+    <nav class="flex w-full bg-white dark:bg-gray-900 items-center justify-between mx-auto p-4">
       <RouterLink :to="`/messages/${route.params.cid}`" class="flex items-center hover:scale-110">
-        <span class="material-symbols-outlined"> arrow_back_ios_new </span></RouterLink
+        <span class="material-symbols-outlined dark:text-white">
+          arrow_back_ios_new
+        </span></RouterLink
       >
 
       <p class="text-2xl font-semibold whitespace-nowrap dark:text-white">
@@ -91,7 +93,7 @@ onUnmounted(() => {
           autocomplete="off"
           type="search"
           id="simple-search"
-          class="bg-gray-200 border-0 text-gray-900 text-sm rounded-lg focus:ring-green-500 block w-full ps-8 p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+          class="bg-gray-200 border-0 text-gray-900 text-sm rounded-lg focus:ring-green-500 block w-full ps-8 p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-green-500 dark:focus:border-green-500"
           placeholder="Search a user..."
           :disabled="users.length < 1 && searchQuery.length < 1"
         />
@@ -99,25 +101,15 @@ onUnmounted(() => {
     </div>
 
     <div class="relative min-h-[56.67px] px-4">
-      <LoadingOverlay
-        :active="isLoading"
-        :opacity="1"
-        :is-full-page="fullScreen"
-        :can-cancel="false"
-        background-color="#fff"
-        :z-index="50"
-        loader="dots"
-        :lock-scroll="true"
-        color="#10B981"
-      />
+      <Loading v-if="isLoading" :is-full-page="fullScreen" />
       <p
         v-for="user in users"
-        class="block font-bold border-b border-gray-300 p-4 hover:bg-green-100"
+        class="block font-bold border-b hover:bg-green-100 border-gray-300 dark:border-gray-400 dark:text-white p-4 dark:hover:bg-gray-700"
       >
         {{ user.Name }}
       </p>
       <div v-if="users.length < 1 && isLoading == false" class="text-center text-gray-500 p-4">
-        No chats found.
+        No users found.
       </div>
     </div>
   </main>

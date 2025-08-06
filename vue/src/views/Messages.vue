@@ -383,14 +383,14 @@ onUnmounted(() => {
       <div v-if="users.length <= 2" class="w-[24px]"></div>
     </nav>
 
-    <div @scroll="onScroll" class="grow pt-2 overflow-y-auto bg-gray-100 dark:bg-gray-800">
-      <div v-for="(messages, key) in messagesWithDates" :key="key" :customname="key">
+    <div @scroll="onScroll" class="grow w-full pt-2 overflow-y-auto bg-gray-100 dark:bg-gray-800">
+      <div v-for="(messages, key) in messagesWithDates" :key="key" :customname="key" class="w-full">
         <p
           class="sticky top-0 text-center w-fit mx-auto px-2 py-0.5 rounded-full bg-gray-400 dark:bg-gray-700 shadow-lg text-sm font-bold text-white"
         >
           {{ key }}
         </p>
-        <div class="px-1 py-2 space-y-3">
+        <div class="px-1 py-2 space-y-3 w-full">
           <div v-for="message in messages" :key="message" :id="`${message.Id}`">
             <div
               v-if="message.IsSystem"

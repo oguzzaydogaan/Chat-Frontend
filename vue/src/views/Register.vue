@@ -34,8 +34,8 @@ onMounted(() => {
 </script>
 
 <template>
-  <main>
-    <section class="bg-gray-200 dark:bg-gray-900">
+  <main class="h-dvh">
+    <section class="bg-gray-200 dark:bg-gray-900 h-full">
       <div class="flex flex-col items-center justify-center px-6 py-8 mx-auto h-full lg:py-0">
         <a
           href="#"

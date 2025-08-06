@@ -64,7 +64,7 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <main class="h-full dark:bg-gray-900">
+  <main class="h-dvh dark:bg-gray-900">
     <nav class="flex w-full bg-white dark:bg-gray-900 items-center justify-between mx-auto p-4">
       <RouterLink :to="`/messages/${route.params.cid}`" class="flex items-center hover:scale-110">
         <span class="material-symbols-outlined dark:text-white">

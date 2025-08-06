@@ -109,7 +109,7 @@ async function onUserJoin(event) {
 
 async function multiselectGetUsers() {
   document.getElementById('add-chat-dropdown').classList.add('hidden')
-  var users = await axios.get('/users')
+  var users = await axios.get('/users/verifieds')
   users.data = users.data.filter((user) => user.id != userId)
   multiselectSelected.value = []
   multiselectOptions.value = users.data.map((user) => ({

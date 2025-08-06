@@ -29,7 +29,6 @@ const isLoading = ref(false)
 const showImageSend = ref(false)
 const isScrolledUp = ref(false)
 var timeOutId = 0
-// const theme = ref(window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
 
 async function GetChat() {
   const response = await axios(`/chats/${route.params.cid}/users/${userId}`)
@@ -121,6 +120,11 @@ async function onNewMessage(event) {
       await nextTick()
       scrollHere.value.scrollIntoView({ behavior: 'smooth' })
     }
+  } else {
+    const audio = new Audio('/sounds/notification.mp3')
+    audio.play().catch((error) => {
+      console.error('Ses çalınamadı:', error)
+    })
   }
 }
 async function onDeleteMessage(event) {
@@ -166,7 +170,7 @@ async function onUserJoin(event) {
 }
 
 async function multiselectGetUsers() {
-  var allUsers = await axios.get('/users')
+  var allUsers = await axios.get('/users/verifieds')
   allUsers.data = allUsers.data.filter(
     (user) => user.id != userId && !users.value.some((u) => u.Id == user.id),
   )

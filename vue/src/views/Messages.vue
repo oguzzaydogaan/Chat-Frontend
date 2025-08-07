@@ -463,43 +463,41 @@ onUnmounted(() => {
               </div>
             </div>
 
-            <div
-              v-if="message.Sender.Id == userId && !message.IsSystem"
-              class="flex items-end gap-1 justify-end"
-            >
-              <div
-                :id="`mbox-${message.Id}`"
-                @mousedown.prevent="message.IsDeleted == false ? deleteMessage(message.Id) : null"
-                @mouseup="deleteCancel(message.Id)"
-                class="flex flex-col w-fit max-w-[250px] md:max-w-[360px] leading-1.5 px-1.5 py-1 bg-green-500 dark:bg-green-700 rounded-l-xl rounded-tr-xl"
-              >
-                <img
-                  v-if="message.ImageString != ''"
-                  :src="`${message.ImageString}`"
-                  class="rounded-lg bg-gray-800 mb-1 border border-green-700 dark:border-green-800 shadow"
-                  @click="showImage(message.ImageString)"
-                />
-                <div class="px-1.5">
-                  <div class="flex space-x-3">
-                    <p
-                      style="-webkit-user-select: none; user-select: none"
-                      class="text-sm font-normal text-white dark:text-white grow wrap-anywhere mb-0.5"
-                    >
-                      {{ message.Content }}
-                    </p>
-                    <span
-                      style="-webkit-user-select: none; user-select: none"
-                      class="text-xs font-normal text-white dark:text-gray-200 self-end"
-                      >{{ messageTime(message.Time) }}</span
-                    >
+            <div v-if="message.Sender.Id == userId && !message.IsSystem" class="flex justify-end">
+              <div class="flex items-end gap-1">
+                <div
+                  :id="`mbox-${message.Id}`"
+                  @mousedown.prevent="message.IsDeleted == false ? deleteMessage(message.Id) : null"
+                  @mouseup="deleteCancel(message.Id)"
+                  class="flex flex-col w-fit max-w-[250px] md:max-w-[360px] leading-1.5 px-1.5 py-1 bg-green-500 dark:bg-green-700 rounded-l-xl rounded-tr-xl"
+                >
+                  <img
+                    v-if="message.ImageString != ''"
+                    :src="`${message.ImageString}`"
+                    class="rounded-lg bg-gray-800 inset-shadow-2xl mb-1"
+                  />
+                  <div class="px-1.5">
+                    <div class="flex space-x-3">
+                      <p
+                        style="-webkit-user-select: none; user-select: none"
+                        class="text-sm font-normal text-white dark:text-white grow wrap-anywhere mb-0.5"
+                      >
+                        {{ message.Content }}
+                      </p>
+                      <span
+                        style="-webkit-user-select: none; user-select: none"
+                        class="text-xs font-normal text-white dark:text-gray-200 self-end"
+                        >{{ messageTime(message.Time) }}</span
+                      >
+                    </div>
                   </div>
                 </div>
+                <img
+                  class="w-6 h-6 rounded-full"
+                  src="https://static.vecteezy.com/system/resources/previews/009/292/244/non_2x/default-avatar-icon-of-social-media-user-vector.jpg"
+                  alt="Jese image"
+                />
               </div>
-              <img
-                class="w-6 h-6 rounded-full"
-                src="https://static.vecteezy.com/system/resources/previews/009/292/244/non_2x/default-avatar-icon-of-social-media-user-vector.jpg"
-                alt="Jese image"
-              />
             </div>
           </div>
         </div>

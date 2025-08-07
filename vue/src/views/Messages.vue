@@ -416,11 +416,12 @@ onUnmounted(() => {
         </p>
         <div class="px-1 py-2 space-y-3">
           <div v-for="message in messages" :key="message" :id="`${message.Id}`">
-            <div
-              v-if="message.IsSystem"
-              class="text-center text-xs w-fit justify-self-center bg-amber-100 dark:bg-amber-200 px-2 rounded-full py-[1px] text-gray-400 dark:text-gray-600 shadow-sm"
-            >
-              {{ message.Content }}
+            <div v-if="message.IsSystem" class="flex justify-center">
+              <p
+                class="text-center text-xs w-fit bg-amber-100 dark:bg-amber-200 px-2 rounded-full py-[1px] text-gray-400 dark:text-gray-600 shadow-sm"
+              >
+                {{ message.Content }}
+              </p>
             </div>
 
             <div

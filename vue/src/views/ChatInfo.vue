@@ -1,4 +1,5 @@
 <script setup>
+import { ChevronLeftIcon, MagnifyingGlassIcon } from '@heroicons/vue/24/solid'
 import { RouterLink, useRoute } from 'vue-router'
 import { onMounted, ref, onUnmounted } from 'vue'
 import { useSocketStore } from '@/stores/socket'
@@ -64,13 +65,11 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <main class="h-dvh dark:bg-gray-900">
+  <main class="min-h-dvh dark:bg-gray-900">
     <nav class="flex w-full bg-white dark:bg-gray-900 items-center justify-between mx-auto p-4">
       <RouterLink :to="`/messages/${route.params.cid}`" class="flex items-center hover:scale-110">
-        <span class="material-symbols-outlined dark:text-white">
-          arrow_back_ios_new
-        </span></RouterLink
-      >
+        <ChevronLeftIcon class="size-6 text-black dark:text-white"
+      /></RouterLink>
 
       <p class="text-2xl font-semibold whitespace-nowrap dark:text-white">
         {{ name }}
@@ -82,9 +81,7 @@ onUnmounted(() => {
     <div class="flex items-center mx-auto px-4 py-2">
       <div class="relative w-full">
         <div class="absolute inset-y-0 start-0 flex items-center ps-2 pointer-events-none">
-          <span class="material-symbols-outlined text-gray-500" style="font-size: 20px"
-            >search</span
-          >
+          <MagnifyingGlassIcon class="text-gray-500 size-5" />
         </div>
         <input
           @input="Search(searchQuery)"

@@ -1,20 +1,26 @@
 <script setup>
+import { ChevronLeftIcon, XMarkIcon, PhotoIcon } from '@heroicons/vue/24/solid'
+import { PaperAirplaneIcon, PlusCircleIcon } from '@heroicons/vue/24/outline'
 import { RouterLink, useRoute } from 'vue-router'
 import { initModals } from 'flowbite'
 import { onMounted, ref, onUnmounted, nextTick } from 'vue'
 import { useSocketStore } from '@/stores/socket'
+import { useChatStore } from '@/stores/chat'
 import axios from '@/plugins/axios'
-import Multiselect from 'vue-multiselect'
 import { RequestEventType } from '@/assets/js/enums'
 import alerts from '@/assets/js/alerts'
 import ImageSend from '../components/ImageSend.vue'
+import ImagePreview from '@/components/ImagePreview.vue'
+import Combobox from '@/components/Combobox.vue'
 
 const route = useRoute()
 const userId = localStorage.getItem('userId')
 const userName = localStorage.getItem('name')
 const socket = useSocketStore()
+const chatStore = useChatStore()
 const scrollHere = ref()
 const base64 = ref()
+const previewBase64 = ref()
 const fileInput = ref()
 const messages = ref()
 const messagesWithDates = ref({})
@@ -27,9 +33,9 @@ const multiselectSelected = ref([])
 const multiselectOptions = ref([])
 const isLoading = ref(false)
 const showImageSend = ref(false)
+const imagePreviewMode = ref(false)
 const isScrolledUp = ref(false)
 var timeOutId = 0
-// const theme = ref(window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
 
 async function GetChat() {
   const response = await axios(`/chats/${route.params.cid}/users/${userId}`)
@@ -106,6 +112,8 @@ async function onNewMessage(event) {
       messagesWithDates.value['Today'] = []
     }
     messagesWithDates.value['Today'].push(event.detail)
+    const audio = new Audio('/sounds/inside-chat-notification.mp3')
+    audio.play()
     if (event.detail.Sender.Id != Number(userId)) {
       const socketMessage = {
         Type: RequestEventType.Message_See,
@@ -121,7 +129,14 @@ async function onNewMessage(event) {
       await nextTick()
       scrollHere.value.scrollIntoView({ behavior: 'smooth' })
     }
+  } else {
+    const audio = new Audio('/sounds/notification.mp3')
+    audio.play()
+    chatStore.addId(event.detail.ChatId)
   }
+}
+async function onNewChat(event) {
+  chatStore.addId(event.detail.Payload.Chat.Id)
 }
 async function onDeleteMessage(event) {
   if (event.detail.ChatId == Number(route.params.cid)) {
@@ -141,10 +156,13 @@ async function onDeleteMessage(event) {
       }
       socket.sendMessage(socketMessage)
     }
+  } else {
+    chatStore.addId(event.detail.ChatId)
   }
 }
 async function onUserJoin(event) {
   if (event.detail.Payload.Chat.Id != Number(route.params.cid)) {
+    chatStore.addId(event.detail.Payload.Chat.Id)
     return
   }
   if (!messagesWithDates.value['Today']) {
@@ -166,7 +184,7 @@ async function onUserJoin(event) {
 }
 
 async function multiselectGetUsers() {
-  var allUsers = await axios.get('/users')
+  var allUsers = await axios.get('/users/verifieds')
   allUsers.data = allUsers.data.filter(
     (user) => user.id != userId && !users.value.some((u) => u.Id == user.id),
   )
@@ -200,8 +218,8 @@ function removeFocus() {
 
 async function fileChange(event) {
   if (event.target.files[0]) {
-    if (event.target.files[0].size > 4096 * 1024) {
-      await alerts.errorToast('Choose an image smaller than 2Mb')
+    if (event.target.files[0].size > 1024 * 1024 * 4) {
+      await alerts.errorToast('Choose an image smaller than 4Mb')
       fileInput.value.value = null
       return
     }
@@ -246,6 +264,16 @@ function closeImageSendModal() {
   base64.value = null
   fileInput.value.value = null
 }
+function showImage(str) {
+  previewBase64.value = str
+  imagePreviewMode.value = true
+}
+function closeImagePreview() {
+  if (imagePreviewMode.value) {
+    imagePreviewMode.value = false
+  }
+  previewBase64.value = null
+}
 
 async function deleteMessage(id) {
   const div = document.getElementById('mbox-' + id)
@@ -278,9 +306,11 @@ function messageTime(time) {
 
 onMounted(async () => {
   isLoading.value = true
+  chatStore.removeId(Number(route.params.cid))
   await GetChat()
   socket.connect()
   window.addEventListener('new-message', onNewMessage)
+  window.addEventListener('new-chat', onNewChat)
   window.addEventListener('new-seen', onSeen)
   window.addEventListener('user-join', onUserJoin)
   window.addEventListener('delete-message', onDeleteMessage)
@@ -303,26 +333,21 @@ onMounted(async () => {
 onUnmounted(() => {
   window.removeEventListener('user-join', onUserJoin)
   window.removeEventListener('new-message', onNewMessage)
+  window.removeEventListener('new-chat', onNewChat)
   window.removeEventListener('delete-message', onDeleteMessage)
 })
 </script>
 
 <template>
   <main class="h-dvh flex flex-col justify-between">
-    <ImageSend
-      v-if="showImageSend"
-      :img="base64"
-      :msg="newMessage"
-      @send-image="sendMessage"
-      @close="closeImageSendModal"
-    />
     <nav
       class="flex w-full bg-white dark:bg-gray-900 items-center justify-between mx-auto p-4 gap-x-4"
     >
-      <RouterLink to="/" class="flex items-center hover:scale-110 cursor-pointer">
-        <span class="material-symbols-outlined dark:text-white">
-          arrow_back_ios_new
-        </span></RouterLink
+      <RouterLink to="/" class="hover:scale-110 cursor-pointer flex items-center">
+        <ChevronLeftIcon class="size-7 text-black dark:text-white" />
+        <p v-if="chatStore.notSeenChatIds.length > 0" class="absolute ms-6 dark:text-white text-sm">
+          {{ chatStore.notSeenChatIds.length <= 99 ? chatStore.notSeenChatIds.length : '+99' }}
+        </p></RouterLink
       >
 
       <RouterLink
@@ -332,15 +357,14 @@ onUnmounted(() => {
       >
       <button
         v-if="users.length > 2"
-        class="flex items-center hover:scale-110 cursor-pointer"
+        class="hover:scale-110 cursor-pointer"
         @click="multiselectGetUsers()"
         data-modal-target="add-user-modal"
         data-modal-toggle="add-user-modal"
       >
-        <span
-          class="material-symbols-outlined text-green-500 hover:text-green-600 dark:text-green-600 dark:hover:text-green-700"
-          >add_circle</span
-        >
+        <PlusCircleIcon
+          class="size-7 text-green-500 dark:text-green-600 hover:text-green-600 dark:hover:text-green-700"
+        />
       </button>
 
       <div
@@ -348,30 +372,27 @@ onUnmounted(() => {
         id="add-user-modal"
         class="hidden overflow-y-auto overflow-x-hidden fixed z-50 inset-0 p-4"
       >
-        <div class="bg-white rounded-lg p-3 space-y-4 w-full flex flex-col max-w-md mx-auto">
+        <div
+          class="bg-white dark:bg-gray-800 rounded-lg p-3 space-y-4 w-full flex flex-col max-w-md mx-auto"
+        >
           <button
             data-modal-hide="add-user-modal"
-            class="w-fit ms-auto h-6 hover:scale-110"
+            class="ms-auto hover:scale-110"
             @focus="removeFocus()"
           >
-            <span class="material-symbols-outlined text-red-500 hover:text-red-600"> close </span>
+            <XMarkIcon class="text-red-500 size-6" />
           </button>
           <form @submit.prevent="addUser()" class="space-y-4">
-            <multiselect
-              name="multi-user"
+            <Combobox
               v-model="multiselectSelected"
-              :options="multiselectOptions"
-              :multiple="false"
-              :searchable="true"
-              label="name"
-              track-by="id"
-              placeholder="Choose a user"
+              :is-multiple="false"
+              :data="multiselectOptions"
             />
             <button
               @focus="removeFocus()"
               type="submit"
               data-modal-hide="add-user-modal"
-              class="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 w-full disabled:opacity-50"
+              class="bg-green-500 dark:bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-600 dark:hover:bg-green-700 w-full disabled:opacity-50"
               :disabled="multiselectSelected.length < 1"
             >
               Add User
@@ -383,8 +404,11 @@ onUnmounted(() => {
       <div v-if="users.length <= 2" class="w-[24px]"></div>
     </nav>
 
-    <div @scroll="onScroll" class="grow w-full pt-2 overflow-y-auto bg-gray-100 dark:bg-gray-800">
-      <div v-for="(messages, key) in messagesWithDates" :key="key" :customname="key" class="w-full">
+    <div
+      @scroll="onScroll"
+      class="grow min-h-[200px] pt-2 overflow-y-auto bg-gray-100 dark:bg-gray-800"
+    >
+      <div v-for="(messages, key) in messagesWithDates" :key="key" :customname="key">
         <p
           class="sticky top-0 text-center w-fit mx-auto px-2 py-0.5 rounded-full bg-gray-400 dark:bg-gray-700 shadow-lg text-sm font-bold text-white"
         >
@@ -421,7 +445,8 @@ onUnmounted(() => {
                 <img
                   v-if="message.ImageString != ''"
                   :src="`${message.ImageString}`"
-                  class="bg-gray-800 rounded-lg my-1 inset-shadow-lg"
+                  class="bg-gray-800 rounded-lg my-1 border border-gray-200 shadow dark:border-gray-800"
+                  @click="showImage(message.ImageString)"
                 />
                 <div class="px-1.5">
                   <div class="flex space-x-3">
@@ -438,41 +463,43 @@ onUnmounted(() => {
               </div>
             </div>
 
-            <div v-if="message.Sender.Id == userId && !message.IsSystem" class="flex justify-end">
-              <div class="flex items-end gap-1">
-                <div
-                  :id="`mbox-${message.Id}`"
-                  @mousedown.prevent="message.IsDeleted == false ? deleteMessage(message.Id) : null"
-                  @mouseup="deleteCancel(message.Id)"
-                  class="flex flex-col w-fit max-w-[250px] md:max-w-[360px] leading-1.5 px-1.5 py-1 bg-green-500 dark:bg-green-700 rounded-l-xl rounded-tr-xl"
-                >
-                  <img
-                    v-if="message.ImageString != ''"
-                    :src="`${message.ImageString}`"
-                    class="rounded-lg bg-gray-800 inset-shadow-2xl mb-1"
-                  />
-                  <div class="px-1.5">
-                    <div class="flex space-x-3">
-                      <p
-                        style="-webkit-user-select: none; user-select: none"
-                        class="text-sm font-normal text-white dark:text-white grow wrap-anywhere mb-0.5"
-                      >
-                        {{ message.Content }}
-                      </p>
-                      <span
-                        style="-webkit-user-select: none; user-select: none"
-                        class="text-xs font-normal text-white dark:text-gray-200 self-end"
-                        >{{ messageTime(message.Time) }}</span
-                      >
-                    </div>
+            <div
+              v-if="message.Sender.Id == userId && !message.IsSystem"
+              class="flex items-end gap-1 justify-self-end"
+            >
+              <div
+                :id="`mbox-${message.Id}`"
+                @mousedown.prevent="message.IsDeleted == false ? deleteMessage(message.Id) : null"
+                @mouseup="deleteCancel(message.Id)"
+                class="flex flex-col w-fit max-w-[250px] md:max-w-[360px] leading-1.5 px-1.5 py-1 bg-green-500 dark:bg-green-700 rounded-l-xl rounded-tr-xl"
+              >
+                <img
+                  v-if="message.ImageString != ''"
+                  :src="`${message.ImageString}`"
+                  class="rounded-lg bg-gray-800 mb-1 border border-green-700 dark:border-green-800 shadow"
+                  @click="showImage(message.ImageString)"
+                />
+                <div class="px-1.5">
+                  <div class="flex space-x-3">
+                    <p
+                      style="-webkit-user-select: none; user-select: none"
+                      class="text-sm font-normal text-white dark:text-white grow wrap-anywhere mb-0.5"
+                    >
+                      {{ message.Content }}
+                    </p>
+                    <span
+                      style="-webkit-user-select: none; user-select: none"
+                      class="text-xs font-normal text-white dark:text-gray-200 self-end"
+                      >{{ messageTime(message.Time) }}</span
+                    >
                   </div>
                 </div>
-                <img
-                  class="w-6 h-6 rounded-full"
-                  src="https://static.vecteezy.com/system/resources/previews/009/292/244/non_2x/default-avatar-icon-of-social-media-user-vector.jpg"
-                  alt="Jese image"
-                />
               </div>
+              <img
+                class="w-6 h-6 rounded-full"
+                src="https://static.vecteezy.com/system/resources/previews/009/292/244/non_2x/default-avatar-icon-of-social-media-user-vector.jpg"
+                alt="Jese image"
+              />
             </div>
           </div>
         </div>
@@ -483,33 +510,38 @@ onUnmounted(() => {
 
     <form
       @submit.prevent="sendMessage(newMessage, base64)"
-      class="flex justify-between items-center pr-3 py-3 bg-white dark:bg-gray-900 border-t-2 border-gray-200 dark:border-0"
+      class="flex justify-between items-center px-2 py-3 gap-1.5 bg-white dark:bg-gray-900 border-t-2 border-gray-200 dark:border-0"
     >
-      <label
-        for="dropzone-file"
-        class="flex flex-col items-center justify-center cursor-pointer ms-1"
-      >
+      <label for="dropzone-file" class="flex flex-col items-center justify-center cursor-pointer">
         <div class="flex flex-col items-center justify-center">
-          <span class="material-symbols-outlined text-gray-500"> attach_file </span>
+          <PhotoIcon class="text-gray-500 size-6" />
         </div>
         <input @change="fileChange" ref="fileInput" id="dropzone-file" type="file" class="hidden" />
       </label>
       <input
         name="message"
         v-model="newMessage"
-        class="text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 me-1.5 grow bg-gray-200 dark:bg-gray-700 rounded-full p-2 px-3 focus:ring-green-500 border-0 placeholder:overflow-hidden"
+        class="text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 grow bg-gray-200 dark:bg-gray-700 rounded-full p-2 px-3 focus:ring-green-500 border-0 placeholder:overflow-hidden"
         type="text"
         placeholder="Type your message here..."
       />
 
       <button
         type="submit"
-        class="bg-green-500 dark:bg-green-600 hover:bg-green-600 dark:hover:bg-green-700 block text-white rounded-full w-[40px] h-[40px] cursor-pointer"
+        class="flex bg-green-500 dark:bg-green-600 hover:bg-green-600 dark:hover:bg-green-700 text-white rounded-full w-[40px] h-[40px] items-center justify-center cursor-pointer"
       >
-        <i class="bi bi-send text-2xl"></i>
+        <PaperAirplaneIcon class="size-6" />
       </button>
     </form>
 
+    <ImagePreview v-if="imagePreviewMode" :img="previewBase64" @close="closeImagePreview" />
+    <ImageSend
+      v-if="showImageSend"
+      :img="base64"
+      :msg="newMessage"
+      @send-image="sendMessage"
+      @close="closeImageSendModal"
+    />
     <Loading v-if="isLoading" :is-full-page="true" />
   </main>
 </template>

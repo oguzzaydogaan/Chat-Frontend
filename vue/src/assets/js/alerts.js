@@ -5,6 +5,8 @@ async function errorAlert(message) {
     text: message,
     timer: 2000,
     showConfirmButton: false,
+    theme: document.documentElement.classList.contains('dark') ? 'dark' : 'light',
+    background: document.documentElement.classList.contains('dark') ? '#1F2937' : '#FFF',
   })
 }
 async function successAlert(message) {
@@ -13,6 +15,8 @@ async function successAlert(message) {
     text: message,
     timer: 2000,
     showConfirmButton: false,
+    theme: document.documentElement.classList.contains('dark') ? 'dark' : 'light',
+    background: document.documentElement.classList.contains('dark') ? '#1F2937' : '#FFF',
   })
 }
 async function errorToast(message) {
@@ -20,12 +24,14 @@ async function errorToast(message) {
     toast: true,
     position: 'top-end',
     showConfirmButton: false,
+    background: document.documentElement.classList.contains('dark') ? '#1F2937' : '#FFF',
     timer: 2000,
     timerProgressBar: true,
     didOpen: (toast) => {
       toast.addEventListener('mouseenter', Swal.stopTimer)
       toast.addEventListener('mouseleave', Swal.resumeTimer)
     },
+    theme: document.documentElement.classList.contains('dark') ? 'dark' : 'light',
   })
   await Toast.fire({
     icon: 'error',
@@ -38,11 +44,13 @@ async function successToast(message, position = null, time = null) {
     position: position || 'top-end',
     showConfirmButton: false,
     timer: time || 2000,
+    background: document.documentElement.classList.contains('dark') ? '#1F2937' : '#FFF',
     timerProgressBar: true,
     didOpen: (toast) => {
       toast.addEventListener('mouseenter', Swal.stopTimer)
       toast.addEventListener('mouseleave', Swal.resumeTimer)
     },
+    theme: document.documentElement.classList.contains('dark') ? 'dark' : 'light',
   })
   await Toast.fire({
     icon: 'success',

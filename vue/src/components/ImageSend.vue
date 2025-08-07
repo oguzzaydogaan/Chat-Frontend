@@ -1,4 +1,5 @@
 <script setup>
+import { XMarkIcon, PaperAirplaneIcon } from '@heroicons/vue/24/outline'
 import { ref } from 'vue'
 
 const props = defineProps(['img', 'msg'])
@@ -9,8 +10,8 @@ const imageMessage = ref(props.msg)
   <main class="absolute h-full w-full z-50">
     <div class="flex flex-col h-full justify-between">
       <nav class="flex justify-end w-full bg-white dark:bg-gray-900 p-4 gap-x-4">
-        <button @click="$emit('close')" class="block h-[24px] hover:scale-110 cursor-pointer">
-          <span class="material-symbols-outlined dark:text-white"> close </span>
+        <button @click="$emit('close')" class="hover:scale-110 cursor-pointer">
+          <XMarkIcon class="dark:text-white size-6" />
         </button>
       </nav>
       <div class="relative grow items-center justify-center bg-gray-100 dark:bg-gray-800">
@@ -31,9 +32,9 @@ const imageMessage = ref(props.msg)
 
         <button
           type="submit"
-          class="bg-green-500 dark:bg-green-600 hover:bg-green-600 dark:hover:bg-green-700 block text-white rounded-full w-[40px] h-[40px] cursor-pointer"
+          class="flex justify-center items-center bg-green-500 dark:bg-green-600 hover:bg-green-600 dark:hover:bg-green-700 text-white rounded-full w-[40px] h-[40px] cursor-pointer"
         >
-          <i class="bi bi-send text-2xl"></i>
+          <PaperAirplaneIcon class="size-6" />
         </button>
       </form>
     </div>

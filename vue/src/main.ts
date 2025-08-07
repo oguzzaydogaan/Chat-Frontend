@@ -1,6 +1,5 @@
 import './assets/tail.css'
 import Loading from './components/Loading.vue'
-import 'material-symbols'
 import { createApp } from 'vue'
 import { createPinia } from 'pinia'
 

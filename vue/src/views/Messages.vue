@@ -408,7 +408,7 @@ onUnmounted(() => {
       @scroll="onScroll"
       class="grow min-h-[200px] pt-2 overflow-y-auto bg-gray-100 dark:bg-gray-800"
     >
-      <div v-for="(messages, key) in messagesWithDates" :key="key" :customname="key">
+      <div v-for="(messages, key) in messagesWithDates" :key="key" :customname="key" class="w-full">
         <p
           class="sticky top-0 text-center w-fit mx-auto px-2 py-0.5 rounded-full bg-gray-400 dark:bg-gray-700 shadow-lg text-sm font-bold text-white"
         >

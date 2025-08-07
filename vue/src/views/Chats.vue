@@ -1,18 +1,20 @@
 <script setup>
+import { PlusCircleIcon, XMarkIcon, MagnifyingGlassIcon } from '@heroicons/vue/24/outline'
 import { initDropdowns, initModals } from 'flowbite'
 import { RouterLink, useRouter } from 'vue-router'
 import { onMounted, onUnmounted, ref } from 'vue'
 import { useSocketStore } from '@/stores/socket'
+import { useChatStore } from '@/stores/chat'
 import axios from '@/plugins/axios'
-import Multiselect from 'vue-multiselect'
-import alerts from '@/assets/js/alerts'
 import { RequestEventType } from '@/assets/js/enums'
+import Combobox from '@/components/Combobox.vue'
 
 const router = useRouter()
 const userId = localStorage.getItem('userId')
 const uname = localStorage.getItem('name')
 const email = localStorage.getItem('email')
 const socket = useSocketStore()
+const chatStore = useChatStore()
 const chats = ref([])
 const chatName = ref('')
 const searchQuery = ref('')
@@ -24,6 +26,11 @@ const fullScreen = ref(true)
 async function GetChats() {
   const response = await axios(`/users/${userId}/chats`)
   chats.value = response.data
+  chats.value.forEach((chat) => {
+    if (chat.count != 0) {
+      chatStore.addId(chat.id)
+    }
+  })
 }
 
 async function Search(query) {
@@ -42,6 +49,9 @@ async function Search(query) {
 }
 
 async function onNewMessage(event) {
+  const audio = new Audio('/sounds/notification.mp3')
+  audio.play()
+  chatStore.addId(event.detail.ChatId)
   if (searchQuery.value != '') {
     return
   }
@@ -59,6 +69,7 @@ async function onNewMessage(event) {
 }
 
 async function onDeleteMessage(event) {
+  chatStore.addId(event.detail.ChatId)
   if (searchQuery.value != '') {
     return
   }
@@ -82,11 +93,14 @@ async function onNewChat(event) {
       name: event.detail.Payload.Chat.Name,
       count: -1,
     })
-    await alerts.successToast('New chat')
+    chatStore.addId(event.detail.Payload.Chat.Id)
+    const audio = new Audio('/sounds/notification.mp3')
+    audio.play()
   }
 }
 
 async function onUserJoin(event) {
+  chatStore.addId(event.detail.Payload.Chat.Id)
   if (searchQuery.value != '') {
     return
   }
@@ -120,6 +134,7 @@ async function multiselectGetUsers() {
 }
 
 async function addGroupChat() {
+  removeFocus()
   const selectedUsersIds = multiselectSelected.value.map((user) => user.id)
   selectedUsersIds.push(Number(userId))
   const socketMessage = {
@@ -136,6 +151,7 @@ async function addGroupChat() {
 }
 
 async function addPersonalChat() {
+  removeFocus()
   const selectedUser = multiselectSelected.value.id
   if (selectedUser) {
     const socketMessage = {
@@ -178,7 +194,7 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <main class="h-full dark:bg-gray-900">
+  <main class="min-h-dvh dark:bg-gray-900">
     <nav class="flex flex-wrap w-full items-center justify-between mx-auto p-4">
       <div class="flex items-center space-x-1 rtl:space-x-reverse">
         <span class="text-2xl font-semibold whitespace-nowrap dark:text-white">Chats</span>
@@ -201,7 +217,7 @@ onUnmounted(() => {
         </button>
         <!-- Dropdown menu -->
         <div
-          class="z-50 hidden my-4 text-base max-w-[150px] list-none bg-gray-200 divide-y divide-gray-100 rounded-lg shadow-lg dark:bg-gray-700 dark:divide-gray-600"
+          class="z-10 hidden my-4 text-base max-w-[150px] list-none bg-gray-200 divide-y divide-gray-100 rounded-lg shadow-lg dark:bg-gray-700 dark:divide-gray-600"
           id="user-dropdown"
         >
           <div class="px-4 py-3 border-b border-gray-300 dark:border-gray-600">
@@ -232,9 +248,7 @@ onUnmounted(() => {
     <div class="flex items-center mx-auto px-4 py-2">
       <div class="relative w-full">
         <div class="absolute inset-y-0 start-0 flex items-center ps-2 pointer-events-none">
-          <span class="material-symbols-outlined text-gray-500" style="font-size: 20px"
-            >search</span
-          >
+          <MagnifyingGlassIcon class="text-gray-500 size-5" />
         </div>
         <input
           @input="Search(searchQuery)"
@@ -243,7 +257,7 @@ onUnmounted(() => {
           autocomplete="off"
           type="search"
           id="simple-search"
-          class="bg-gray-200 border-0 text-gray-900 text-sm rounded-lg focus:ring-green-500 block w-full ps-8 p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+          class="bg-gray-200 border-0 text-gray-900 rounded-lg focus:ring-green-500 block w-full ps-8 p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-green-500 dark:focus:border-green-500"
           placeholder="Search chat name..."
           :disabled="chats.length < 1 && searchQuery.length < 1"
         />
@@ -251,20 +265,18 @@ onUnmounted(() => {
 
       <button
         type="button"
-        class="flex h-fit text-sm rounded-full ms-1"
+        class="ms-1"
         id="add-chat-button"
         aria-expanded="true"
         data-dropdown-toggle="add-chat-dropdown"
       >
-        <span
-          class="material-symbols-outlined text-green-500 hover:text-green-600 dark:text-green-600 dark:hover:text-green-700"
-          style="font-size: 30px"
-          >add_circle</span
-        >
+        <PlusCircleIcon
+          class="size-8 text-green-500 hover:text-green-600 dark:text-green-600 dark:hover:text-green-700"
+        />
       </button>
       <!-- Dropdown menu -->
       <div
-        class="z-50 hidden text-base list-none bg-gray-200 divide-y divide-gray-100 rounded-lg shadow-lg dark:bg-gray-700 dark:divide-gray-600"
+        class="z-10 hidden text-base list-none bg-gray-200 divide-y divide-gray-100 rounded-lg shadow-lg dark:bg-gray-700 dark:divide-gray-600"
         id="add-chat-dropdown"
       >
         <ul class="" aria-labelledby="user-menu-button">
@@ -291,30 +303,26 @@ onUnmounted(() => {
         </ul>
       </div>
       <div id="add-personal-chat-modal" class="fixed inset-0 z-50 p-4 hidden">
-        <div class="bg-white rounded-lg p-3 space-y-4 w-full flex flex-col max-w-md mx-auto">
+        <div
+          class="bg-white dark:bg-gray-800 rounded-lg p-3 space-y-4 w-full flex flex-col max-w-md mx-auto"
+        >
           <button
             @focus="removeFocus()"
             data-modal-hide="add-personal-chat-modal"
-            class="text-gray-500 hover:text-gray-700 w-fit ms-auto h-6 hover:scale-110"
+            class="text-gray-500 hover:text-gray-700 ms-auto hover:scale-110"
           >
-            <span class="material-symbols-outlined text-red-500"> close </span>
+            <XMarkIcon class="text-red-500 size-6" />
           </button>
           <form @submit.prevent="addPersonalChat()" class="space-y-4">
-            <multiselect
-              name="multi-user"
+            <Combobox
+              :is-multiple="false"
+              :data="multiselectOptions"
               v-model="multiselectSelected"
-              :options="multiselectOptions"
-              :multiple="false"
-              :searchable="true"
-              label="name"
-              track-by="id"
-              placeholder="Choose a user"
             />
             <button
-              @focus="removeFocus()"
               type="submit"
               data-modal-hide="add-personal-chat-modal"
-              class="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 w-full disabled:opacity-50"
+              class="bg-green-500 dark:bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-600 dark:hover:bg-green-700 w-full disabled:opacity-50"
               :disabled="multiselectSelected.length < 1"
             >
               Create Chat
@@ -324,13 +332,15 @@ onUnmounted(() => {
       </div>
 
       <div id="add-group-chat-modal" class="fixed inset-0 z-50 p-4 space-x-2 hidden">
-        <div class="bg-white rounded-lg p-3 space-y-4 w-full flex flex-col max-w-md mx-auto">
+        <div
+          class="bg-white dark:bg-gray-800 rounded-lg p-3 space-y-4 w-full flex flex-col max-w-md mx-auto"
+        >
           <button
             @focus="removeFocus()"
             data-modal-hide="add-group-chat-modal"
-            class="text-gray-500 hover:text-gray-700 w-fit ms-auto h-6 hover:scale-110"
+            class="text-gray-500 hover:text-gray-700 ms-auto hover:scale-110"
           >
-            <span class="material-symbols-outlined text-red-500"> close </span>
+            <XMarkIcon class="text-red-500 size-6" />
           </button>
           <form @submit.prevent="addGroupChat(chatName)" class="space-y-4">
             <input
@@ -339,25 +349,18 @@ onUnmounted(() => {
               v-model="chatName"
               placeholder="Enter chat name..."
               maxlength="30"
-              class="bg-gray-200 rounded-lg text-sm p-3 w-full border-0 focus:ring-blue-500 focus:border-blue-500"
-              required
+              class="bg-gray-200 dark:bg-gray-700 dark:placeholder-gray-400 dark:text-white rounded-lg text-sm p-3 w-full border-0 focus:ring-green-500 focus:border-green-500"
             />
-            <multiselect
-              name="multi-users"
+            <Combobox
+              :is-multiple="true"
+              :data="multiselectOptions"
               v-model="multiselectSelected"
-              :options="multiselectOptions"
-              :multiple="true"
-              :searchable="true"
-              label="name"
-              track-by="id"
-              placeholder="Choose min two users"
             />
             <button
-              @focus="removeFocus()"
               type="submit"
               data-modal-hide="add-group-chat-modal"
-              class="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 w-full disabled:opacity-50"
-              :disabled="multiselectSelected.length < 2"
+              class="bg-green-500 dark:bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-600 dark:hover:bg-green-700 w-full disabled:opacity-50"
+              :disabled="multiselectSelected.length < 2 || !chatName"
             >
               Create Group
             </button>
@@ -395,4 +398,3 @@ onUnmounted(() => {
     </div>
   </main>
 </template>
-<style src="vue-multiselect/dist/vue-multiselect.min.css"></style>

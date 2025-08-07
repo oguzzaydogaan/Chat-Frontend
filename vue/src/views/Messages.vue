@@ -465,7 +465,7 @@ onUnmounted(() => {
 
             <div
               v-if="message.Sender.Id == userId && !message.IsSystem"
-              class="flex items-end gap-1 justify-self-end"
+              class="flex items-end gap-1 justify-end"
             >
               <div
                 :id="`mbox-${message.Id}`"

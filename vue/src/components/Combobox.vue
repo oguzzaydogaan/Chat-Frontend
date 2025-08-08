@@ -8,7 +8,7 @@
           <span
             v-for="person in selectedPeople"
             :key="person.id"
-            @click="selectedPeople = selectedPeople.filter((p) => p.id !== person.id)"
+            @click="removeSelectedPerson(person.id)"
             class="m-1 rounded-md bg-teal-100 hover:bg-red-100 px-2 py-1 text-teal-900 hover:text-red-900 text-xs text-nowrap"
           >
             {{ person.name }}
@@ -90,7 +90,8 @@ import {
 } from '@headlessui/vue'
 import { CheckIcon, ChevronUpDownIcon } from '@heroicons/vue/20/solid'
 
-const props = defineProps(['data', 'isMultiple'])
+const props = defineProps(['data', 'isMultiple', 'modelValue'])
+const emit = defineEmits(['update:modelValue'])
 
 const people = ref(props.data)
 watch(
@@ -101,6 +102,10 @@ watch(
 )
 
 const selectedPeople = props.isMultiple ? ref([]) : ref()
+async function removeSelectedPerson(id) {
+  selectedPeople.value = selectedPeople.value.filter((p) => p.id !== id)
+  emit('update:modelValue', selectedPeople.value)
+}
 
 const query = ref('')
 

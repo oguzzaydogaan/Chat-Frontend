@@ -102,9 +102,15 @@ watch(
 )
 
 const selectedPeople = props.isMultiple ? ref([]) : ref()
+watch(
+  () => selectedPeople.value,
+  (newData) => {
+    emit('update:modelValue', newData)
+  },
+)
+
 async function removeSelectedPerson(id) {
   selectedPeople.value = selectedPeople.value.filter((p) => p.id !== id)
-  emit('update:modelValue', selectedPeople.value)
 }
 
 const query = ref('')

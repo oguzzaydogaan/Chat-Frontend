@@ -8,17 +8,24 @@ export const useSocketStore = defineStore('socket', {
     socket: null as WebSocket | null,
     isConnected: false,
     chatId: -1,
+    reconnectAttempt: 0,
+    reconnectTimeoutId: null as number | null,
+    maxReconnectInterval: 30000,
   }),
   actions: {
     connect() {
+      if (this.reconnectTimeoutId) {
+        clearTimeout(this.reconnectTimeoutId)
+        this.reconnectTimeoutId = null
+      }
       if (this.socket && this.isConnected) return
 
       this.socket = new WebSocket(
         `wss://${import.meta.env.VITE_BACKEND_URL}/ws/message?accessToken=${localStorage.getItem('token')}`,
       )
-
       this.socket.onopen = () => {
         this.isConnected = true
+        this.reconnectAttempt = 0
       }
 
       this.socket.onmessage = async (event: MessageEvent) => {
@@ -51,13 +58,23 @@ export const useSocketStore = defineStore('socket', {
       this.socket.onclose = async (event) => {
         this.socket = null
         this.isConnected = false
-        await alerts.errorAlert(event.reason || 'Server not responding')
         if (
           event.reason == 'Another device connected' ||
           event.reason == 'Session expired. Please log in again'
         ) {
+          await alerts.errorAlert(event.reason)
           localStorage.clear()
           window.location.href = '/'
+        } else {
+          const reconnectInterval = Math.min(
+            1000 * Math.pow(2, this.reconnectAttempt),
+            this.maxReconnectInterval,
+          )
+          this.reconnectAttempt++
+
+          this.reconnectTimeoutId = setTimeout(() => {
+            this.connect()
+          }, reconnectInterval)
         }
       }
 

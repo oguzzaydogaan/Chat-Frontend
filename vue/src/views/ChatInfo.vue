@@ -90,7 +90,7 @@ onUnmounted(() => {
           autocomplete="off"
           type="search"
           id="simple-search"
-          class="bg-gray-200 border-0 text-gray-900 text-sm rounded-lg focus:ring-green-500 block w-full ps-8 p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-green-500 dark:focus:border-green-500"
+          class="bg-gray-200 border-0 text-gray-900 text-base rounded-lg focus:ring-green-500 block w-full ps-8 p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-green-500 dark:focus:border-green-500"
           placeholder="Search a user..."
           :disabled="users.length < 1 && searchQuery.length < 1"
         />

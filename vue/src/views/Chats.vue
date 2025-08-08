@@ -2,7 +2,7 @@
 import { PlusCircleIcon, XMarkIcon, MagnifyingGlassIcon } from '@heroicons/vue/24/outline'
 import { initDropdowns, initModals } from 'flowbite'
 import { RouterLink, useRouter } from 'vue-router'
-import { onMounted, onUnmounted, ref } from 'vue'
+import { onMounted, onUnmounted, ref, watch } from 'vue'
 import { useSocketStore } from '@/stores/socket'
 import { useChatStore } from '@/stores/chat'
 import axios from '@/plugins/axios'

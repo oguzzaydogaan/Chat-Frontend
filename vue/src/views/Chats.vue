@@ -349,7 +349,7 @@ onUnmounted(() => {
               v-model="chatName"
               placeholder="Enter chat name..."
               maxlength="30"
-              class="bg-gray-200 dark:bg-gray-700 dark:placeholder-gray-400 dark:text-white rounded-lg text-sm p-3 w-full border-0 focus:ring-green-500 focus:border-green-500"
+              class="bg-gray-200 dark:bg-gray-700 dark:placeholder-gray-400 dark:text-white rounded-lg text-base p-3 w-full border-0 focus:ring-green-500 focus:border-green-500"
             />
             <Combobox
               :is-multiple="true"

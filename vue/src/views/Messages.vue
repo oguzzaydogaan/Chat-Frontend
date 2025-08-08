@@ -1,6 +1,6 @@
 <script setup>
 import { ChevronLeftIcon, XMarkIcon, PhotoIcon } from '@heroicons/vue/24/solid'
-import { PaperAirplaneIcon, PlusCircleIcon } from '@heroicons/vue/24/outline'
+import { PaperAirplaneIcon, PlusCircleIcon, ClockIcon } from '@heroicons/vue/24/outline'
 import { RouterLink, useRoute } from 'vue-router'
 import { initModals } from 'flowbite'
 import { onMounted, ref, onUnmounted, nextTick } from 'vue'
@@ -16,6 +16,8 @@ import Combobox from '@/components/Combobox.vue'
 const route = useRoute()
 const userId = localStorage.getItem('userId')
 const userName = localStorage.getItem('name')
+const notSends = ref(JSON.parse(localStorage.getItem('notSends')))
+console.log(notSends.value)
 const socket = useSocketStore()
 const chatStore = useChatStore()
 const scrollHere = ref()
@@ -37,54 +39,83 @@ const imagePreviewMode = ref(false)
 const isScrolledUp = ref(false)
 var timeOutId = 0
 
+function FindKey(message) {
+  const now = new Date()
+  const yesterday = new Date(now)
+  yesterday.setDate(now.getDate() - 1)
+  const date = new Date(message.Time)
+  let key = ''
+
+  if (date.toDateString() === now.toDateString()) {
+    key = 'Today'
+  } else if (date.toDateString() === yesterday.toDateString()) {
+    key = 'Yesterday'
+  } else {
+    const diffTime = now - date
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24))
+
+    if (diffDays < 7) {
+      key = date.toLocaleDateString('en-US', {
+        weekday: 'long',
+      })
+    } else if (diffDays < 365) {
+      key = date.toLocaleDateString('en-US', {
+        day: '2-digit',
+        month: 'short',
+        weekday: 'short',
+      })
+    } else {
+      key = date.toLocaleDateString('en-US', {
+        month: 'short',
+        year: 'numeric',
+      })
+    }
+  }
+
+  return key
+}
+
+function findInsertIndex(arr, item) {
+  let low = 0
+  let high = arr.length - 1
+
+  while (low <= high) {
+    const mid = Math.floor((low + high) / 2)
+    if (arr[mid].Time < item.Time) {
+      low = mid + 1
+    } else {
+      high = mid - 1
+    }
+  }
+
+  return low
+}
+
 async function GetChat() {
   const response = await axios(`/chats/${route.params.cid}/users/${userId}`)
   name.value = response.data.Name
   messages.value = response.data.Messages
   users.value = response.data.Users
 
-  const now = new Date()
-  const yesterday = new Date(now)
-  yesterday.setDate(now.getDate() - 1)
-
   messages.value.forEach((message) => {
     if (!message.Seens.some((seen) => seen.UserId == Number(userId))) {
       notSeenMessageIds.value.push(message.Id)
     }
 
-    const date = new Date(message.Time)
-    let key = ''
-
-    if (date.toDateString() === now.toDateString()) {
-      key = 'Today'
-    } else if (date.toDateString() === yesterday.toDateString()) {
-      key = 'Yesterday'
-    } else {
-      const diffTime = now - date
-      const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24))
-
-      if (diffDays < 7) {
-        key = date.toLocaleDateString('en-US', {
-          weekday: 'long',
-        })
-      } else if (diffDays < 365) {
-        key = date.toLocaleDateString('en-US', {
-          day: '2-digit',
-          month: 'short',
-          weekday: 'short',
-        })
-      } else {
-        key = date.toLocaleDateString('en-US', {
-          month: 'short',
-          year: 'numeric',
-        })
-      }
-    }
-
+    let key = FindKey(message)
     if (!messagesWithDates.value[key]) {
       messagesWithDates.value[key] = []
     }
     messagesWithDates.value[key].push(message)
+  })
+  notSends.value.forEach((s) => {
+    let key = FindKey(s.Payload.Message)
+    if (!messagesWithDates.value[key]) {
+      messagesWithDates.value[key] = [s.Payload.Message]
+    } else {
+      const insertIndex = findInsertIndex(messagesWithDates.value[key], s.Payload.Message)
+      messagesWithDates.value[key].splice(insertIndex, 0, s.Payload.Message)
+    }
   })
   await nextTick()
   scrollHere.value.scrollIntoView({ behavior: 'smooth' })
@@ -107,14 +138,22 @@ async function onSeen(event) {
   })
 }
 async function onNewMessage(event) {
-  if (event.detail.ChatId == Number(route.params.cid)) {
-    if (!messagesWithDates.value['Today']) {
-      messagesWithDates.value['Today'] = []
+  for (let index = 0; index < notSends.value.length; index++) {
+    const element = notSends.value[index].Payload.Message
+    if (event.detail.LocalId == element.LocalId) {
+      notSends.value.splice(index, 1)
+      localStorage.setItem('notSends', JSON.stringify(notSends.value))
+      break
     }
-    messagesWithDates.value['Today'].push(event.detail)
-    const audio = new Audio('/sounds/inside-chat-notification.mp3')
-    audio.play()
+  }
+  if (event.detail.ChatId == Number(route.params.cid)) {
     if (event.detail.Sender.Id != Number(userId)) {
+      if (!messagesWithDates.value['Today']) {
+        messagesWithDates.value['Today'] = []
+      }
+      messagesWithDates.value['Today'].push(event.detail)
+      const audio = new Audio('/sounds/inside-chat-notification.mp3')
+      audio.play()
       const socketMessage = {
         Type: RequestEventType.Message_See,
         Payload: {
@@ -124,6 +163,12 @@ async function onNewMessage(event) {
         Sender: { Id: Number(userId), Name: userName },
       }
       socket.sendMessage(socketMessage)
+    } else {
+      let key = FindKey(event.detail)
+      let index = messagesWithDates.value[key].findIndex((m) => m.LocalId == event.detail.LocalId)
+      messagesWithDates.value[key][index] = event.detail
+      const audio = new Audio('/sounds/inside-chat-notification.mp3')
+      audio.play()
     }
     if (!isScrolledUp.value) {
       await nextTick()
@@ -249,8 +294,23 @@ async function sendMessage(msg, img) {
         ChatId: Number(route.params.cid),
         Content: msg,
         ImageString: img ?? '',
+        Time: new Date().toISOString(),
+        LocalId: 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+          const r = (Math.random() * 16) | 0,
+            v = c === 'x' ? r : (r & 0x3) | 0x8
+          return v.toString(16)
+        }),
       },
     },
+  }
+  notSends.value.push(socketMessage)
+  localStorage.setItem('notSends', JSON.stringify(notSends.value))
+  let key = FindKey(socketMessage.Payload.Message)
+  if (!messagesWithDates.value[key]) {
+    messagesWithDates.value[key] = [socketMessage.Payload.Message]
+  } else {
+    const insertIndex = findInsertIndex(messagesWithDates.value[key], socketMessage.Payload.Message)
+    messagesWithDates.value[key].splice(insertIndex, 0, socketMessage.Payload.Message)
   }
   socket.sendMessage(socketMessage)
   closeImageSendModal()
@@ -416,7 +476,7 @@ onUnmounted(() => {
         </p>
         <div class="px-1 py-2 space-y-3">
           <div v-for="message in messages" :key="message" :id="`${message.Id}`">
-            <div v-if="message.IsSystem" class="flex justify-center">
+            <div v-if="message.Id && message.IsSystem" class="flex justify-center">
               <p
                 class="text-center text-xs w-fit bg-amber-100 dark:bg-amber-200 px-2 rounded-full py-[1px] text-gray-400 dark:text-gray-600 shadow-sm"
               >
@@ -425,7 +485,7 @@ onUnmounted(() => {
             </div>
 
             <div
-              v-if="message.Sender.Id != userId && !message.IsSystem"
+              v-if="message.Id && message.Sender.Id != userId && !message.IsSystem"
               class="flex items-end gap-1"
             >
               <img
@@ -464,7 +524,7 @@ onUnmounted(() => {
             </div>
 
             <div
-              v-if="message.Sender.Id == userId && !message.IsSystem"
+              v-if="message.Id && message.Sender.Id == userId && !message.IsSystem"
               class="flex items-end gap-1 justify-end"
             >
               <div
@@ -492,6 +552,40 @@ onUnmounted(() => {
                       class="text-xs font-normal text-white dark:text-gray-200 self-end"
                       >{{ messageTime(message.Time) }}</span
                     >
+                  </div>
+                </div>
+              </div>
+              <img
+                class="w-6 h-6 rounded-full"
+                src="https://static.vecteezy.com/system/resources/previews/009/292/244/non_2x/default-avatar-icon-of-social-media-user-vector.jpg"
+                alt="Jese image"
+              />
+            </div>
+
+            <div v-if="!message.Id" class="flex items-end gap-1 justify-end">
+              <div
+                class="flex flex-col w-fit max-w-[250px] md:max-w-[360px] leading-1.5 px-1.5 py-1 bg-green-500 dark:bg-green-700 rounded-l-xl rounded-tr-xl"
+              >
+                <img
+                  v-if="message.ImageString != ''"
+                  :src="`${message.ImageString}`"
+                  class="rounded-lg bg-gray-800 mb-1 border border-green-700 dark:border-green-800 shadow"
+                  @click="showImage(message.ImageString)"
+                />
+                <div class="px-1.5">
+                  <div class="flex space-x-3">
+                    <p
+                      style="-webkit-user-select: none; user-select: none"
+                      class="text-sm font-normal text-white dark:text-white grow wrap-anywhere mb-0.5"
+                    >
+                      {{ message.Content }}
+                    </p>
+                    <span
+                      style="-webkit-user-select: none; user-select: none"
+                      class="text-xs font-normal text-white dark:text-gray-200 self-end"
+                      >{{ messageTime(message.Time) }}
+                      <ClockIcon class="size-3 text-white dark:text-gray-200 inline-block"
+                    /></span>
                   </div>
                 </div>
               </div>

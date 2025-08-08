@@ -16,7 +16,7 @@
         </div>
         <div class="flex">
           <ComboboxInput
-            class="flex-1 border-none bg-gray-200 dark:bg-gray-700 py-2 pl-3 pr-10 text-sm leading-5 text-gray-900 dark:text-gray-400 focus:ring-0"
+            class="flex-1 border-none bg-gray-200 dark:bg-gray-700 py-2 pl-3 pr-10 text-base leading-5 text-gray-900 dark:text-gray-400 focus:ring-0"
             :displayValue="props.isMultiple ? () => '' : (person) => person?.name"
             @change="query = $event.target.value"
             :placeholder="props.isMultiple ? 'Choose users' : 'Choose a user'"

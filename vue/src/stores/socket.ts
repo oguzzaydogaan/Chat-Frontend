@@ -2,6 +2,7 @@ import alerts from '@/assets/js/alerts'
 import router from '@/router'
 import { defineStore } from 'pinia'
 import { ResponseEventType } from '@/assets/js/enums'
+import db from '@/plugins/db'
 
 export const useSocketStore = defineStore('socket', {
   state: () => ({
@@ -83,11 +84,12 @@ export const useSocketStore = defineStore('socket', {
       }
     },
 
-    disconnect() {
+    async disconnect() {
       if (this.socket) {
         this.socket.close()
         this.isConnected = false
         localStorage.clear()
+        await db.clearNotSends()
         window.location.href = '/'
       }
     },

@@ -19,6 +19,7 @@ async function handleSignIn() {
       localStorage.setItem('userId', response.data.id)
       localStorage.setItem('name', response.data.name)
       localStorage.setItem('email', response.data.email)
+      localStorage.setItem('notSends', '[]')
       router.push('/chats')
     })
     .catch(function (error) {

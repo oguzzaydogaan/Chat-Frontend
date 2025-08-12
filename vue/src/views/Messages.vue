@@ -1,6 +1,7 @@
 <script setup>
 import { ChevronLeftIcon, XMarkIcon, PhotoIcon } from '@heroicons/vue/24/solid'
 import { PaperAirplaneIcon, PlusCircleIcon, ClockIcon } from '@heroicons/vue/24/outline'
+import { ExclamationCircleIcon } from '@heroicons/vue/16/solid'
 import { RouterLink, useRoute } from 'vue-router'
 import { initModals } from 'flowbite'
 import { onMounted, ref, onUnmounted, nextTick } from 'vue'
@@ -12,12 +13,12 @@ import alerts from '@/assets/js/alerts'
 import ImageSend from '../components/ImageSend.vue'
 import ImagePreview from '@/components/ImagePreview.vue'
 import Combobox from '@/components/Combobox.vue'
+import db from '@/plugins/db'
 
 const route = useRoute()
 const userId = localStorage.getItem('userId')
 const userName = localStorage.getItem('name')
-const notSends = ref(JSON.parse(localStorage.getItem('notSends')))
-console.log(notSends.value)
+const notSends = ref([])
 const socket = useSocketStore()
 const chatStore = useChatStore()
 const scrollHere = ref()
@@ -109,12 +110,14 @@ async function GetChat() {
     messagesWithDates.value[key].push(message)
   })
   notSends.value.forEach((s) => {
-    let key = FindKey(s.Payload.Message)
-    if (!messagesWithDates.value[key]) {
-      messagesWithDates.value[key] = [s.Payload.Message]
-    } else {
-      const insertIndex = findInsertIndex(messagesWithDates.value[key], s.Payload.Message)
-      messagesWithDates.value[key].splice(insertIndex, 0, s.Payload.Message)
+    if (s.Payload.Message.ChatId == Number(route.params.cid)) {
+      let key = FindKey(s.Payload.Message)
+      if (!messagesWithDates.value[key]) {
+        messagesWithDates.value[key] = [s.Payload.Message]
+      } else {
+        const insertIndex = findInsertIndex(messagesWithDates.value[key], s.Payload.Message)
+        messagesWithDates.value[key].splice(insertIndex, 0, s.Payload.Message)
+      }
     }
   })
   await nextTick()
@@ -138,14 +141,9 @@ async function onSeen(event) {
   })
 }
 async function onNewMessage(event) {
-  for (let index = 0; index < notSends.value.length; index++) {
-    const element = notSends.value[index].Payload.Message
-    if (event.detail.LocalId == element.LocalId) {
-      notSends.value.splice(index, 1)
-      localStorage.setItem('notSends', JSON.stringify(notSends.value))
-      break
-    }
-  }
+  notSends.value.filter((s) => s.Payload.Message.LocalId != event.detail.LocalId)
+  db.deleteNotSend(event.detail.LocalId)
+  chatStore.filterUnSent(event.detail.LocalId)
   if (event.detail.ChatId == Number(route.params.cid)) {
     if (event.detail.Sender.Id != Number(userId)) {
       if (!messagesWithDates.value['Today']) {
@@ -263,8 +261,8 @@ function removeFocus() {
 
 async function fileChange(event) {
   if (event.target.files[0]) {
-    if (event.target.files[0].size > 1024 * 1024 * 4) {
-      await alerts.errorToast('Choose an image smaller than 4Mb')
+    if (event.target.files[0].size > 1024 * 1024 * 20) {
+      await alerts.errorToast('Choose an image smaller than 20Mb')
       fileInput.value.value = null
       return
     }
@@ -302,9 +300,11 @@ async function sendMessage(msg, img) {
         }),
       },
     },
+    Sender: { Id: Number(userId), Name: userName },
   }
   notSends.value.push(socketMessage)
-  localStorage.setItem('notSends', JSON.stringify(notSends.value))
+  db.saveNotSend(socketMessage)
+  chatStore.pushUnSent(socketMessage)
   let key = FindKey(socketMessage.Payload.Message)
   if (!messagesWithDates.value[key]) {
     messagesWithDates.value[key] = [socketMessage.Payload.Message]
@@ -314,6 +314,10 @@ async function sendMessage(msg, img) {
   }
   socket.sendMessage(socketMessage)
   closeImageSendModal()
+}
+
+async function sendUnsent(lid) {
+  socket.sendMessage(await db.getNotSend(lid))
 }
 
 function closeImageSendModal() {
@@ -367,6 +371,7 @@ function messageTime(time) {
 onMounted(async () => {
   isLoading.value = true
   chatStore.removeId(Number(route.params.cid))
+  notSends.value = await db.getAllNotSends()
   await GetChat()
   socket.connect()
   window.addEventListener('new-message', onNewMessage)
@@ -584,8 +589,16 @@ onUnmounted(() => {
                       style="-webkit-user-select: none; user-select: none"
                       class="text-xs font-normal text-white dark:text-gray-200 self-end"
                       >{{ messageTime(message.Time) }}
-                      <ClockIcon class="size-3 text-white dark:text-gray-200 inline-block"
-                    /></span>
+                      <ClockIcon
+                        v-if="chatStore.isContainUnSent(message.LocalId)"
+                        class="size-3 text-white dark:text-gray-200 inline-block"
+                      />
+                      <ExclamationCircleIcon
+                        v-else
+                        @click="sendUnsent(message.LocalId)"
+                        class="size-4 text-red-500 dark:text-red-600 inline-block"
+                      />
+                    </span>
                   </div>
                 </div>
               </div>

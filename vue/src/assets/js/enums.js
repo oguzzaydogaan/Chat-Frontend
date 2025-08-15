@@ -7,12 +7,13 @@ const RequestEventType = {
 }
 
 const ResponseEventType = {
-  Message_Sent: 0,
-  Message_Deleted: 1,
-  Message_Seen: 2,
-  Chat_Created: 3,
-  Chat_UserAdded: 4,
-  Error: 5,
+  Message_Received: 0,
+  Message_Saved: 1,
+  Message_Deleted: 2,
+  Message_Seen: 3,
+  Chat_Created: 4,
+  Chat_UserAdded: 5,
+  Error: 6,
 }
 
 export { RequestEventType, ResponseEventType }

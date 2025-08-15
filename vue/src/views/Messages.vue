@@ -18,7 +18,6 @@ import db from '@/plugins/db'
 const route = useRoute()
 const userId = localStorage.getItem('userId')
 const userName = localStorage.getItem('name')
-const notSends = ref([])
 const socket = useSocketStore()
 const chatStore = useChatStore()
 const scrollHere = ref()
@@ -98,18 +97,29 @@ async function GetChat() {
   messages.value = response.data.Messages
   users.value = response.data.Users
 
-  messages.value.forEach((message) => {
+  messages.value.forEach(async (message) => {
     if (!message.Seens.some((seen) => seen.UserId == Number(userId))) {
       notSeenMessageIds.value.push(message.Id)
     }
-
+    if (
+      !message.IsSystem &&
+      chatStore.unSentMessagesDb.some((s) => s.Payload.Message.LocalId == message.LocalId)
+    ) {
+      await chatStore.filterUnSent(message.LocalId)
+    }
+    if (
+      !message.IsSystem &&
+      chatStore.unSavedMessagesDb.some((m) => m.LocalId == message.LocalId)
+    ) {
+      await chatStore.filterUnSaved(message.LocalId)
+    }
     let key = FindKey(message)
     if (!messagesWithDates.value[key]) {
       messagesWithDates.value[key] = []
     }
     messagesWithDates.value[key].push(message)
   })
-  notSends.value.forEach((s) => {
+  chatStore.unSentMessagesDb.forEach((s) => {
     if (s.Payload.Message.ChatId == Number(route.params.cid)) {
       let key = FindKey(s.Payload.Message)
       if (!messagesWithDates.value[key]) {
@@ -141,17 +151,44 @@ async function onSeen(event) {
   })
 }
 async function onNewMessage(event) {
-  notSends.value.filter((s) => s.Payload.Message.LocalId != event.detail.LocalId)
-  db.deleteNotSend(event.detail.LocalId)
-  chatStore.filterUnSent(event.detail.LocalId)
+  await chatStore.filterUnSent(event.detail.LocalId)
+  await chatStore.pushUnsaved(event.detail)
   if (event.detail.ChatId == Number(route.params.cid)) {
-    if (event.detail.Sender.Id != Number(userId)) {
-      if (!messagesWithDates.value['Today']) {
-        messagesWithDates.value['Today'] = []
+    let key = FindKey(event.detail)
+    if (!messagesWithDates.value[key]) {
+      messagesWithDates.value[key] = [event.detail]
+    } else {
+      if (event.detail.UserId != Number(userId)) {
+        let insertIndex = findInsertIndex(messagesWithDates.value[key], event.detail)
+        messagesWithDates.value[key].splice(insertIndex, 0, event.detail)
+      } else {
+        let index = messagesWithDates.value[key].findIndex((m) => m.LocalId == event.detail.LocalId)
+        messagesWithDates.value[key][index] = event.detail
       }
-      messagesWithDates.value['Today'].push(event.detail)
-      const audio = new Audio('/sounds/inside-chat-notification.mp3')
-      audio.play()
+    }
+    const audio = new Audio('/sounds/inside-chat-notification.mp3')
+    audio.play()
+    if (!isScrolledUp.value) {
+      await nextTick()
+      scrollHere.value.scrollIntoView({ behavior: 'smooth' })
+    }
+  } else {
+    const audio = new Audio('/sounds/notification.mp3')
+    audio.play()
+    chatStore.addId(event.detail.ChatId)
+  }
+}
+async function onSaveMessage(event) {
+  await chatStore.filterUnSaved(event.detail.LocalId)
+  if (event.detail.ChatId == Number(route.params.cid)) {
+    let key = FindKey(event.detail)
+    if (!messagesWithDates.value[key]) {
+      messagesWithDates.value[key] = [event.detail]
+    } else {
+      let index = messagesWithDates.value[key].findIndex((m) => m.LocalId == event.detail.LocalId)
+      messagesWithDates.value[key][index] = event.detail
+    }
+    if (event.detail.Sender.Id != Number(userId)) {
       const socketMessage = {
         Type: RequestEventType.Message_See,
         Payload: {
@@ -161,21 +198,11 @@ async function onNewMessage(event) {
         Sender: { Id: Number(userId), Name: userName },
       }
       socket.sendMessage(socketMessage)
-    } else {
-      let key = FindKey(event.detail)
-      let index = messagesWithDates.value[key].findIndex((m) => m.LocalId == event.detail.LocalId)
-      messagesWithDates.value[key][index] = event.detail
-      const audio = new Audio('/sounds/inside-chat-notification.mp3')
-      audio.play()
     }
     if (!isScrolledUp.value) {
       await nextTick()
       scrollHere.value.scrollIntoView({ behavior: 'smooth' })
     }
-  } else {
-    const audio = new Audio('/sounds/notification.mp3')
-    audio.play()
-    chatStore.addId(event.detail.ChatId)
   }
 }
 async function onNewChat(event) {
@@ -289,6 +316,7 @@ async function sendMessage(msg, img) {
     Payload: {
       Message: {
         UserId: Number(userId),
+        UserName: userName,
         ChatId: Number(route.params.cid),
         Content: msg,
         ImageString: img ?? '',
@@ -301,10 +329,9 @@ async function sendMessage(msg, img) {
       },
     },
     Sender: { Id: Number(userId), Name: userName },
+    Recievers: users.value.map((u) => u.Id),
   }
-  notSends.value.push(socketMessage)
-  db.saveNotSend(socketMessage)
-  chatStore.pushUnSent(socketMessage)
+  await chatStore.pushUnSent(socketMessage)
   let key = FindKey(socketMessage.Payload.Message)
   if (!messagesWithDates.value[key]) {
     messagesWithDates.value[key] = [socketMessage.Payload.Message]
@@ -371,9 +398,9 @@ function messageTime(time) {
 onMounted(async () => {
   isLoading.value = true
   chatStore.removeId(Number(route.params.cid))
-  notSends.value = await db.getAllNotSends()
   await GetChat()
   socket.connect()
+  window.addEventListener('save-message', onSaveMessage)
   window.addEventListener('new-message', onNewMessage)
   window.addEventListener('new-chat', onNewChat)
   window.addEventListener('new-seen', onSeen)
@@ -397,6 +424,7 @@ onMounted(async () => {
 
 onUnmounted(() => {
   window.removeEventListener('user-join', onUserJoin)
+  window.removeEventListener('save-message', onSaveMessage)
   window.removeEventListener('new-message', onNewMessage)
   window.removeEventListener('new-chat', onNewChat)
   window.removeEventListener('delete-message', onDeleteMessage)
@@ -567,7 +595,10 @@ onUnmounted(() => {
               />
             </div>
 
-            <div v-if="!message.Id" class="flex items-end gap-1 justify-end">
+            <div
+              v-if="!message.Id && message.UserId == Number(userId)"
+              class="flex items-end gap-1 justify-end"
+            >
               <div
                 class="flex flex-col w-fit max-w-[250px] md:max-w-[360px] leading-1.5 px-1.5 py-1 bg-green-500 dark:bg-green-700 rounded-l-xl rounded-tr-xl"
               >
@@ -589,15 +620,17 @@ onUnmounted(() => {
                       style="-webkit-user-select: none; user-select: none"
                       class="text-xs font-normal text-white dark:text-gray-200 self-end"
                       >{{ messageTime(message.Time) }}
-                      <ClockIcon
-                        v-if="chatStore.isContainUnSent(message.LocalId)"
-                        class="size-3 text-white dark:text-gray-200 inline-block"
-                      />
-                      <ExclamationCircleIcon
-                        v-else
-                        @click="sendUnsent(message.LocalId)"
-                        class="size-4 text-red-500 dark:text-red-600 inline-block"
-                      />
+                      <span v-if="chatStore.isContainUnSentDb(message.LocalId)" class="h-fit">
+                        <ClockIcon
+                          v-if="chatStore.isContainUnSent(message.LocalId)"
+                          class="size-3 text-white dark:text-gray-200 inline-block"
+                        />
+                        <ExclamationCircleIcon
+                          v-else
+                          @click="sendUnsent(message.LocalId)"
+                          class="size-4 text-red-500 dark:text-red-600 inline-block"
+                        />
+                      </span>
                     </span>
                   </div>
                 </div>
@@ -607,6 +640,42 @@ onUnmounted(() => {
                 src="https://static.vecteezy.com/system/resources/previews/009/292/244/non_2x/default-avatar-icon-of-social-media-user-vector.jpg"
                 alt="Jese image"
               />
+            </div>
+            <div
+              v-if="!message.Id && message.UserId != Number(userId)"
+              class="flex items-end gap-1"
+            >
+              <img
+                class="w-6 h-6 rounded-full"
+                src="https://static.vecteezy.com/system/resources/previews/009/292/244/non_2x/default-avatar-icon-of-social-media-user-vector.jpg"
+                alt="Jese image"
+              />
+              <div
+                class="flex flex-col w-fit max-w-[250px] md:max-w-[360px] leading-1.5 px-1.5 py-1 bg-white dark:bg-gray-700 rounded-r-xl rounded-tl-xl"
+              >
+                <div class="px-1.5">
+                  <span class="text-sm font-semibold text-green-500">{{ message.UserName }}</span>
+                </div>
+
+                <img
+                  v-if="message.ImageString != ''"
+                  :src="`${message.ImageString}`"
+                  class="bg-gray-800 rounded-lg my-1 border border-gray-200 shadow dark:border-gray-800"
+                  @click="showImage(message.ImageString)"
+                />
+                <div class="px-1.5">
+                  <div class="flex space-x-3">
+                    <p
+                      class="text-sm font-normal text-gray-500 dark:text-white wrap-anywhere grow mb-0.5"
+                    >
+                      {{ message.Content }}
+                    </p>
+                    <span class="text-xs font-normal text-gray-400 dark:text-gray-300 self-end">{{
+                      messageTime(message.Time)
+                    }}</span>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>

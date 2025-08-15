@@ -34,8 +34,10 @@ export const useSocketStore = defineStore('socket', {
           const data = JSON.parse(event.data)
           if (data.Type == ResponseEventType.Message_Seen) {
             window.dispatchEvent(new CustomEvent('new-seen', { detail: data.Payload.MessageReads }))
-          } else if (data.Type == ResponseEventType.Message_Sent) {
-            window.dispatchEvent(new CustomEvent('new-message', { detail: data.Payload.Message }))
+          } else if (data.Type == ResponseEventType.Message_Received) {
+            window.dispatchEvent(new CustomEvent('new-message', { detail: data.Message }))
+          } else if (data.Type == ResponseEventType.Message_Saved) {
+            window.dispatchEvent(new CustomEvent('save-message', { detail: data.Payload.Message }))
           } else if (data.Type == ResponseEventType.Message_Deleted) {
             window.dispatchEvent(
               new CustomEvent('delete-message', { detail: data.Payload.Message }),
@@ -53,6 +55,7 @@ export const useSocketStore = defineStore('socket', {
           }
         } catch (err) {
           alerts.errorAlert('WebSocket error')
+          console.error('WebSocket message parsing error:', err)
         }
       }
 
@@ -90,6 +93,7 @@ export const useSocketStore = defineStore('socket', {
         this.isConnected = false
         localStorage.clear()
         await db.clearNotSends()
+        await db.clearUnsaved()
         window.location.href = '/'
       }
     },

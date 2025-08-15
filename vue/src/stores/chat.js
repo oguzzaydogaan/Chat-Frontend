@@ -1,12 +1,15 @@
 import { defineStore } from 'pinia'
 import { onMounted, ref } from 'vue'
 import axios from '@/plugins/axios'
+import db from '@/plugins/db'
 
 export const useChatStore = defineStore('chat', () => {
   const allChats = ref([])
   const userId = Number(localStorage.getItem('userId'))
   const notSeenChatIds = ref([])
+  const unSentMessagesDb = ref([])
   const unSentMessages = ref([])
+  const unSavedMessagesDb = ref([])
   function addId(id) {
     if (!notSeenChatIds.value.some((i) => i == id)) {
       notSeenChatIds.value.push(id)
@@ -32,25 +35,47 @@ export const useChatStore = defineStore('chat', () => {
       }
     })
   }
-  function pushUnSent(socketMessage) {
+  async function pushUnSent(socketMessage) {
     unSentMessages.value.push(socketMessage)
+    unSentMessagesDb.value.push(socketMessage)
+    await db.saveNotSend(socketMessage)
   }
-  function filterUnSent(id) {
-    unSentMessages.value.filter((s) => s.Payload.Message.LocalId == id)
+  async function filterUnSent(id) {
+    unSentMessages.value = unSentMessages.value.filter((s) => s.Payload.Message.LocalId == id)
+    unSentMessagesDb.value = unSentMessagesDb.value.filter((s) => s.Payload.Message.LocalId != id)
+    await db.deleteNotSend(id)
+  }
+  async function pushUnsaved(message) {
+    unSavedMessagesDb.value.push(message)
+    await db.saveUnsaved(message)
+  }
+  async function filterUnSaved(id) {
+    unSavedMessagesDb.value = unSavedMessagesDb.value.filter((m) => m.LocalId != id)
+    await db.deleteUnsaved(id)
   }
   function isContainUnSent(id) {
     return unSentMessages.value.some((s) => s.Payload.Message.LocalId == id)
   }
+  function isContainUnSentDb(id) {
+    return unSentMessagesDb.value.some((s) => s.Payload.Message.LocalId == id)
+  }
   onMounted(async () => {
     await getAllChats()
+    unSentMessagesDb.value = await db.getAllNotSends()
+    unSavedMessagesDb.value = await db.getAllUnsaved()
   })
   return {
     notSeenChatIds,
+    unSentMessagesDb,
     unSentMessages,
+    unSavedMessagesDb,
     addId,
     removeId,
     pushUnSent,
     filterUnSent,
+    pushUnsaved,
+    filterUnSaved,
     isContainUnSent,
+    isContainUnSentDb,
   }
 })

@@ -49,6 +49,8 @@ async function Search(query) {
 }
 
 async function onNewMessage(event) {
+  await chatStore.filterUnSent(event.detail.LocalId)
+  await chatStore.pushUnsaved(event.detail)
   const audio = new Audio('/sounds/notification.mp3')
   audio.play()
   chatStore.addId(event.detail.ChatId)
@@ -66,6 +68,10 @@ async function onNewMessage(event) {
       chats.value.splice(0, 0, chat)
     }
   }
+}
+
+async function onSaveMessage(event) {
+  await chatStore.filterUnSaved(event.detail.LocalId)
 }
 
 async function onDeleteMessage(event) {
@@ -180,6 +186,7 @@ onMounted(async () => {
   socket.connect()
   window.addEventListener('new-chat', onNewChat)
   window.addEventListener('user-join', onUserJoin)
+  window.addEventListener('save-message', onSaveMessage)
   window.addEventListener('new-message', onNewMessage)
   window.addEventListener('delete-message', onDeleteMessage)
   isLoading.value = false
@@ -188,6 +195,7 @@ onMounted(async () => {
 onUnmounted(() => {
   window.removeEventListener('new-chat', onNewChat)
   window.removeEventListener('user-join', onUserJoin)
+  window.removeEventListener('save-message', onSaveMessage)
   window.removeEventListener('new-message', onNewMessage)
   window.removeEventListener('delete-message', onDeleteMessage)
 })

@@ -81,9 +81,21 @@ const db = {
     return record
   },
 
+  deleteDatabasePromise(dbName) {
+    return new Promise((resolve, reject) => {
+      const request = indexedDB.deleteDatabase(dbName)
+      request.onsuccess = () => resolve()
+      request.onerror = (event) => reject(event.target.error)
+      request.onblocked = () => console.warn(`${dbName} is blocked.`)
+    })
+  },
   async clearAll() {
-    const dbConn = await dbPromise
-    await dbConn.clear()
+    try {
+      await deleteDatabasePromise('chat-db')
+      console.log('Tüm veritabanı başarıyla silindi.')
+    } catch (error) {
+      console.error('Veritabanı silinirken bir hata oluştu:', error)
+    }
   },
 }
 

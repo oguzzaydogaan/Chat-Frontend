@@ -1,7 +1,7 @@
 // db.js
 import { openDB } from 'idb'
 
-const dbPromise = openDB('chat-db', 1, {
+const dbPromise = openDB('chat-db', 2, {
   upgrade(db) {
     if (!db.objectStoreNames.contains('notSends')) {
       db.createObjectStore('notSends', { keyPath: 'LocalId' })

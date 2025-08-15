@@ -80,6 +80,11 @@ const db = {
     const record = await dbConn.get('unsavedMessages', localId)
     return record
   },
+
+  async clearAll() {
+    const dbConn = await dbPromise
+    await dbConn.clear()
+  },
 }
 
 export default db

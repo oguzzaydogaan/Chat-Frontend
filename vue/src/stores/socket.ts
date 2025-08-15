@@ -68,6 +68,7 @@ export const useSocketStore = defineStore('socket', {
         ) {
           await alerts.errorAlert(event.reason)
           localStorage.clear()
+          await db.clearAll()
           window.location.href = '/'
         } else {
           const reconnectInterval = Math.min(
@@ -92,8 +93,7 @@ export const useSocketStore = defineStore('socket', {
         this.socket.close()
         this.isConnected = false
         localStorage.clear()
-        await db.clearNotSends()
-        await db.clearUnsaved()
+        await db.clearAll()
         window.location.href = '/'
       }
     },

@@ -6,6 +6,9 @@ const dbPromise = openDB('chat-db', 1, {
     if (!db.objectStoreNames.contains('notSends')) {
       db.createObjectStore('notSends', { keyPath: 'LocalId' })
     }
+    if (!db.objectStoreNames.contains('unsavedMessages')) {
+      db.createObjectStore('unsavedMessages', { keyPath: 'LocalId' })
+    }
   },
 })
 
@@ -45,6 +48,37 @@ const db = {
   async clearNotSends() {
     const dbConn = await dbPromise
     await dbConn.clear('notSends')
+  },
+
+  // Unsaved mesaj ekle veya güncelle
+  async saveUnsaved(message) {
+    const dbConn = await dbPromise
+    await dbConn.put('unsavedMessages', message)
+  },
+
+  // Tüm unsaved mesajları al
+  async getAllUnsaved() {
+    const dbConn = await dbPromise
+    return await dbConn.getAll('unsavedMessages')
+  },
+
+  // Unsaved mesaj sil
+  async deleteUnsaved(id) {
+    const dbConn = await dbPromise
+    await dbConn.delete('unsavedMessages', id)
+  },
+
+  // Tüm unsaved mesajları sil
+  async clearUnsaved() {
+    const dbConn = await dbPromise
+    await dbConn.clear('unsavedMessages')
+  },
+
+  // Unsaved mesajı al
+  async getUnsaved(localId) {
+    const dbConn = await dbPromise
+    const record = await dbConn.get('unsavedMessages', localId)
+    return record
   },
 }
 

@@ -48,7 +48,7 @@ instance.interceptors.response.use(
       await alerts.errorAlert('Session expired. Please log in again.')
       window.location.href = '/'
     } else if (error.response.status == 500) {
-      await alerts.errorAlert('Internal server error. Please try again later.')
+      await alerts.errorAlert('Something went wrong on the server. Please try again later.')
     }
     return Promise.reject(error)
   },

@@ -16,7 +16,7 @@ instance.interceptors.request.use(
 
       if (!token || !expiresIn || new Date(expiresIn) < new Date(currentTime)) {
         localStorage.clear()
-        await db.clearAll()
+        await db.resetDb()
         await alerts.errorAlert('Session expired. Please log in again.')
         window.location.href = '/'
         return Promise.reject()
@@ -47,7 +47,7 @@ instance.interceptors.response.use(
       await alerts.errorAlert(error.response.data || 'Forbidden.')
     } else if (error.response.status == 401) {
       localStorage.clear()
-      await db.clearAll()
+      await db.resetDb()
       await alerts.errorAlert('Session expired. Please log in again.')
       window.location.href = '/'
     } else if (error.response.status == 500) {

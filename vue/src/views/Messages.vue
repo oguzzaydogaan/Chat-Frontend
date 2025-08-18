@@ -332,12 +332,10 @@ async function sendMessage(msg, img) {
     Recievers: users.value.map((u) => u.Id),
   }
   await chatStore.pushUnSent(socketMessage)
-  let key = FindKey(socketMessage.Payload.Message)
-  if (!messagesWithDates.value[key]) {
-    messagesWithDates.value[key] = [socketMessage.Payload.Message]
+  if (!messagesWithDates.value['Today']) {
+    messagesWithDates.value['Today'] = [socketMessage.Payload.Message]
   } else {
-    const insertIndex = findInsertIndex(messagesWithDates.value[key], socketMessage.Payload.Message)
-    messagesWithDates.value[key].splice(insertIndex, 0, socketMessage.Payload.Message)
+    messagesWithDates.value['Today'].push(socketMessage.Payload.Message)
   }
   socket.sendMessage(socketMessage)
   closeImageSendModal()

@@ -1,19 +1,24 @@
 // db.js
-import { openDB } from 'idb'
+import { deleteDB, openDB } from 'idb'
 
-const dbPromise = openDB('chat-db', 1, {
-  upgrade(db) {
-    if (!db.objectStoreNames.contains('notSends')) {
+const dbPromise = openDB('chat-db', 2, {
+  upgrade(db, oldVersion) {
+    if (oldVersion < 1) {
       db.createObjectStore('notSends', { keyPath: 'LocalId' })
     }
-    if (!db.objectStoreNames.contains('unsavedMessages')) {
+    if (oldVersion < 2) {
       db.createObjectStore('unsavedMessages', { keyPath: 'LocalId' })
     }
   },
 })
 
+dbPromise.then((db) => {
+  db.addEventListener('versionchange', () => {
+    db.close()
+  })
+})
+
 const db = {
-  // Mesaj ekle veya güncelle
   async saveNotSend(socketMessage) {
     const dbConn = await dbPromise
     const record = {
@@ -23,7 +28,6 @@ const db = {
     await dbConn.put('notSends', record)
   },
 
-  // Tüm mesajları al
   async getAllNotSends() {
     const dbConn = await dbPromise
     return await dbConn.getAll('notSends')
@@ -38,47 +42,51 @@ const db = {
     return record
   },
 
-  // Mesaj sil
   async deleteNotSend(id) {
     const dbConn = await dbPromise
     await dbConn.delete('notSends', id)
   },
 
-  // Tümünü sil
   async clearNotSends() {
     const dbConn = await dbPromise
     await dbConn.clear('notSends')
   },
 
-  // Unsaved mesaj ekle veya güncelle
   async saveUnsaved(message) {
     const dbConn = await dbPromise
     await dbConn.put('unsavedMessages', message)
   },
 
-  // Tüm unsaved mesajları al
   async getAllUnsaved() {
     const dbConn = await dbPromise
     return await dbConn.getAll('unsavedMessages')
   },
 
-  // Unsaved mesaj sil
   async deleteUnsaved(id) {
     const dbConn = await dbPromise
     await dbConn.delete('unsavedMessages', id)
   },
 
-  // Tüm unsaved mesajları sil
   async clearUnsaved() {
     const dbConn = await dbPromise
     await dbConn.clear('unsavedMessages')
   },
 
-  // Unsaved mesajı al
   async getUnsaved(localId) {
     const dbConn = await dbPromise
     const record = await dbConn.get('unsavedMessages', localId)
     return record
+  },
+
+  async clearAll() {
+    await clearNotSends()
+    await clearUnsaved()
+  },
+
+  async resetDb() {
+    const db = await dbPromise
+    db.close()
+    await deleteDB('chat-db')
   },
 }
 

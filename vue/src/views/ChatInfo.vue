@@ -9,6 +9,7 @@ const route = useRoute()
 const userId = localStorage.getItem('userId')
 const socket = useSocketStore()
 const users = ref([])
+const filteredUsers = ref([])
 const searchQuery = ref('')
 socket.SetChatId(Number(route.params.cid))
 const name = ref('')
@@ -19,6 +20,7 @@ async function GetChat() {
   const response = await axios(`/chats/${route.params.cid}/users/${userId}`)
   name.value = response.data.Name
   users.value = response.data.Users
+  filteredUsers.value = response.data.Users
 }
 
 async function Search(query) {
@@ -32,7 +34,7 @@ async function Search(query) {
   query = query.toLowerCase()
   isLoading.value = true
   const response = await axios(`/chats/${route.params.cid}/users/search?searchTerm=${query}`)
-  users.value = response.data
+  filteredUsers.value = response.data
   isLoading.value = false
 }
 
@@ -71,12 +73,22 @@ onUnmounted(() => {
         <ChevronLeftIcon class="size-6 text-black dark:text-white"
       /></RouterLink>
 
-      <p class="text-2xl font-semibold whitespace-nowrap dark:text-white">
-        {{ name }}
-      </p>
+      <p class="text-2xl font-semibold whitespace-nowrap dark:text-white">Group Info</p>
 
-      <div class="w-[24px]"></div>
+      <button class="w-[24px] text-xs dark:text-white text-center">Edit</button>
     </nav>
+
+    <div class="flex flex-col gap-1 items-center justify-center mt-3">
+      <img
+        class="w-24 h-24 rounded-full"
+        src="https://www.gravatar.com/avatar/?d=mp&s=200"
+        alt="User Avatar"
+      />
+      <div>
+        <p class="text-2xl font-semibold dark:text-white text-black text-center">{{ name }}</p>
+        <p class="text-gray-500 text-center -mt-1">Group · {{ users.length }} members</p>
+      </div>
+    </div>
 
     <div class="flex items-center mx-auto px-4 py-2">
       <div class="relative w-full">
@@ -92,7 +104,7 @@ onUnmounted(() => {
           id="simple-search"
           class="bg-gray-200 border-0 text-gray-900 text-base rounded-lg focus:ring-green-500 block w-full ps-8 p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-green-500 dark:focus:border-green-500"
           placeholder="Search a user..."
-          :disabled="users.length < 1 && searchQuery.length < 1"
+          :disabled="filteredUsers.length < 1 && searchQuery.length < 1"
         />
       </div>
     </div>
@@ -100,12 +112,15 @@ onUnmounted(() => {
     <div class="relative min-h-[56.67px] px-4">
       <Loading v-if="isLoading" :is-full-page="fullScreen" />
       <p
-        v-for="user in users"
+        v-for="user in filteredUsers"
         class="block font-bold border-b hover:bg-green-100 border-gray-300 dark:border-gray-400 dark:text-white p-4 dark:hover:bg-gray-700"
       >
         {{ user.Name }}
       </p>
-      <div v-if="users.length < 1 && isLoading == false" class="text-center text-gray-500 p-4">
+      <div
+        v-if="filteredUsers.length < 1 && isLoading == false"
+        class="text-center text-gray-500 p-4"
+      >
         No users found.
       </div>
     </div>

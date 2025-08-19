@@ -1,5 +1,6 @@
 import alerts from '@/assets/js/alerts'
 import axios from 'axios'
+import db from './db'
 
 const instance = axios.create({
   baseURL: `https://${import.meta.env.VITE_BACKEND_URL}/api`,
@@ -15,6 +16,7 @@ instance.interceptors.request.use(
 
       if (!token || !expiresIn || new Date(expiresIn) < new Date(currentTime)) {
         localStorage.clear()
+        await db.resetDb()
         await alerts.errorAlert('Session expired. Please log in again.')
         window.location.href = '/'
         return Promise.reject()
@@ -45,6 +47,7 @@ instance.interceptors.response.use(
       await alerts.errorAlert(error.response.data || 'Forbidden.')
     } else if (error.response.status == 401) {
       localStorage.clear()
+      await db.resetDb()
       await alerts.errorAlert('Session expired. Please log in again.')
       window.location.href = '/'
     } else if (error.response.status == 500) {

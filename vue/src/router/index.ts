@@ -4,6 +4,7 @@ import Messages from '../views/Messages.vue'
 import Login from '@/views/Login.vue'
 import Register from '@/views/Register.vue'
 import ChatInfo from '@/views/ChatInfo.vue'
+import Voice from '@/views/Voice.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -32,6 +33,11 @@ const router = createRouter({
       path: '/info/:cid',
       name: 'info',
       component: ChatInfo,
+    },
+    {
+      path: '/voice',
+      name: 'voice',
+      component: Voice,
     },
   ],
 })

@@ -30,8 +30,6 @@ async function handleSignIn() {
 onMounted(async () => {
   if (localStorage.getItem('token')) {
     router.push('/chats')
-  } else {
-    await db.resetDb()
   }
 })
 </script>

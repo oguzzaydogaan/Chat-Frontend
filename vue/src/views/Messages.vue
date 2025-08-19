@@ -442,10 +442,19 @@ onUnmounted(() => {
       >
 
       <RouterLink
+        v-if="users.length > 2"
         :to="`/info/${route.params.cid}`"
         class="text-2xl font-semibold overflow-hidden dark:text-white text-black text-center"
         >{{ name }}</RouterLink
       >
+      <p
+        v-else
+        :to="`/info/${route.params.cid}`"
+        class="text-2xl font-semibold overflow-hidden dark:text-white text-black text-center"
+      >
+        {{ name }}
+      </p>
+
       <button
         v-if="users.length > 2"
         class="hover:scale-110 cursor-pointer"

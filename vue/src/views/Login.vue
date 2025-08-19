@@ -2,6 +2,7 @@
 import { onMounted, ref } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
 import axios from '@/plugins/axios'
+import db from '@/plugins/db'
 
 const email = ref('')
 const router = useRouter()
@@ -19,7 +20,6 @@ async function handleSignIn() {
       localStorage.setItem('userId', response.data.id)
       localStorage.setItem('name', response.data.name)
       localStorage.setItem('email', response.data.email)
-      localStorage.setItem('notSends', '[]')
       router.push('/chats')
     })
     .catch(function (error) {
@@ -27,9 +27,11 @@ async function handleSignIn() {
         document.getElementById('#error').textContent = 'Invalid username or password'
     })
 }
-onMounted(() => {
+onMounted(async () => {
   if (localStorage.getItem('token')) {
     router.push('/chats')
+  } else {
+    await db.resetDb()
   }
 })
 </script>

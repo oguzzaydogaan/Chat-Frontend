@@ -10,7 +10,7 @@ const callStore = useCallStore()
     v-if="callStore.isIncomingCall"
     class="absolute h-full w-full z-50 bg-white dark:bg-gray-900"
   >
-    <audio src="/public/sounds/incoming-call.mp3" loop autoplay playsinline="true"></audio>
+    <audio src="/sounds/incoming-call.mp3" loop autoplay playsinline="true"></audio>
     <div class="flex items-center justify-center h-full py-16">
       <div class="flex flex-col h-full w-full max-w-sm items-center justify-between gap-4 p-4">
         <img

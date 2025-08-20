@@ -38,7 +38,7 @@ onMounted(async () => {
         <audio
           v-if="callStore.isCalling"
           ref="audio"
-          src="/public/sounds/calling.mp3"
+          src="/sounds/calling.mp3"
           @play="audio.playbackRate = 0.5"
           @ended="loopAudio"
           autoplay

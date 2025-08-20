@@ -36,7 +36,12 @@ async function flushIceQueue() {
 function createPeerConnection(targetId) {
   if (pc) return pc
 
-  pc = new RTCPeerConnection()
+  pc = new RTCPeerConnection({
+    iceServers: [
+      { urls: 'stun:stun.l.google.com:19302' },
+      // { urls: 'turn:turn.example.com:3478', username: 'user', credential: 'pass' }
+    ],
+  })
 
   pc.onicecandidate = (event) => {
     if (event.candidate) {

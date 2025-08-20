@@ -1,13 +1,13 @@
 import { defineStore } from 'pinia'
-import { ref } from 'vue'
+import { nextTick, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useSocketStore } from './socket'
 import { RequestEventType } from '@/assets/js/enums'
 
 export const useCallStore = defineStore('call', () => {
   const router = useRouter()
-  const userId = Number(localStorage.getItem('userId'))
-  const userName = localStorage.getItem('name')
+  let userId = null
+  let userName = null
   const otherUser = ref({ id: null, name: null })
   const socketStore = useSocketStore()
   let pc = null
@@ -59,6 +59,8 @@ export const useCallStore = defineStore('call', () => {
   }
 
   async function startCall(targetId, targetName) {
+    userId = Number(localStorage.getItem('userId'))
+    userName = localStorage.getItem('name')
     otherUser.value = { id: String(targetId), name: targetName }
     pc = createPeerConnection(otherUser.value.id)
 
@@ -69,8 +71,7 @@ export const useCallStore = defineStore('call', () => {
 
     const offer = await pc.createOffer()
     await pc.setLocalDescription(offer)
-
-    socketStore.sendMessage({
+    const message = {
       Type: RequestEventType.Call_Offer,
       Payload: {
         Call: {
@@ -81,7 +82,8 @@ export const useCallStore = defineStore('call', () => {
         },
       },
       Sender: { Id: userId, Name: userName },
-    })
+    }
+    socketStore.sendMessage(message)
     isCalling.value = true
     router.push({
       name: 'call',
@@ -143,9 +145,12 @@ export const useCallStore = defineStore('call', () => {
   }
 
   async function onCallOffer(event) {
+    userId = Number(localStorage.getItem('userId'))
+    userName = localStorage.getItem('name')
     callData = event.detail.Payload.Call
-    otherUser.value = { id: callData.SourceUserId, name: event.detail.Sender.Name }
+    otherUser.value = { id: String(event.detail.Sender.Id), name: event.detail.Sender.Name }
     isIncomingCall.value = true
+    await nextTick()
   }
 
   async function sendAnswer(accept) {
@@ -161,7 +166,7 @@ export const useCallStore = defineStore('call', () => {
       const answer = await pc.createAnswer()
       await pc.setLocalDescription(answer)
 
-      socketStore.sendMessage({
+      const message = {
         Type: RequestEventType.Call_Accept,
         Payload: {
           Call: {
@@ -172,7 +177,8 @@ export const useCallStore = defineStore('call', () => {
           },
         },
         Sender: { Id: userId, Name: userName },
-      })
+      }
+      socketStore.sendMessage(message)
 
       isInCall.value = true
       router.push({ name: 'call' })

@@ -18,6 +18,7 @@ let iceQueue = []
 const remoteAudio = new Audio()
 const isIncomingCall = ref(false)
 const isInCall = ref(false)
+const isCalling = ref(false)
 
 async function getComboboxOptions() {
   const allUsers = await axios.get('/users/verifieds')
@@ -88,6 +89,7 @@ async function startCall() {
     },
     Sender: { Id: userId, Name: userName },
   })
+  isCalling.value = true
 }
 
 async function stopCall() {
@@ -96,9 +98,9 @@ async function stopCall() {
     pc = null
   }
   isInCall.value = false
+  isCalling.value = false
   isIncomingCall.value = false
   iceQueue = []
-  comboboxSelected.value = null
   remoteAudio.pause()
   remoteAudio.srcObject = null
   if (localStream) {
@@ -114,7 +116,7 @@ async function endCall() {
     Payload: {
       Call: {
         SourceUserId: String(userId),
-        TargetUserId: callData.SourceUserId,
+        TargetUserId: String(callData.Payload.Call.SourceUserId),
       },
     },
     Sender: { Id: userId, Name: userName },
@@ -122,20 +124,34 @@ async function endCall() {
   callData = null
 }
 
+async function cancelCall() {
+  await stopCall()
+  socketStore.sendMessage({
+    Type: RequestEventType.Call_Reject,
+    Payload: {
+      Call: {
+        SourceUserId: String(userId),
+        TargetUserId: String(comboboxSelected.value.id),
+      },
+    },
+    Sender: { Id: userId, Name: userName },
+  })
+}
+
 async function onCallOffer(event) {
-  callData = event.detail.Payload.Call
+  callData = event.detail
   isIncomingCall.value = true
 }
 
 async function sendAnswer(accept) {
   if (accept) {
-    const targetId = callData.SourceUserId
+    const targetId = callData.Payload.Call.SourceUserId
     pc = createPeerConnection(targetId)
 
     if (!localStream) localStream = await navigator.mediaDevices.getUserMedia({ audio: true })
     localStream.getTracks().forEach((t) => pc.addTrack(t, localStream))
 
-    await pc.setRemoteDescription({ type: 'offer', sdp: callData.Sdp })
+    await pc.setRemoteDescription({ type: 'offer', sdp: callData.Payload.Call.Sdp })
     await flushIceQueue()
 
     const answer = await pc.createAnswer()
@@ -162,7 +178,7 @@ async function sendAnswer(accept) {
       Payload: {
         Call: {
           SourceUserId: String(userId),
-          TargetUserId: callData.SourceUserId,
+          TargetUserId: callData.Payload.Call.SourceUserId,
         },
       },
       Sender: { Id: userId, Name: userName },
@@ -174,9 +190,10 @@ async function sendAnswer(accept) {
 }
 
 async function onCallAccept(event) {
-  callData = event.detail.Payload.Call
+  callData = event.detail
   isInCall.value = true
-  await pc.setRemoteDescription({ type: 'answer', sdp: callData.Sdp })
+  isCalling.value = false
+  await pc.setRemoteDescription({ type: 'answer', sdp: callData.Payload.Call.Sdp })
   await flushIceQueue()
 }
 
@@ -221,27 +238,50 @@ onUnmounted(() => {
   <main class="min-h-dvh dark:bg-gray-900 dark:text-white">
     <div v-if="!isIncomingCall" class="flex flex-col justify-center items-center p-4 gap-2">
       <Combobox
-        v-if="!isInCall"
+        v-if="!isInCall && !isCalling"
         v-model="comboboxSelected"
         :is-multiple="false"
         :data="comboboxOptions"
       />
+
+      <p v-if="isInCall" class="text-black dark:text-white">
+        Call started with {{ callData.Sender.Name }}
+      </p>
       <button
+        v-if="!isCalling"
         @click="isInCall ? endCall() : startCall()"
         class="p-2 rounded-md disabled:opacity-50 text-white"
-        :class="isInCall ? 'bg-red-500' : 'bg-green-500'"
+        :class="isInCall ? 'bg-red-500 hover:bg-red-600' : 'bg-green-500 hover:bg-green-600'"
         :disabled="!comboboxSelected && !isInCall"
       >
         {{ isInCall ? 'End Call' : 'Start Call' }}
       </button>
+
+      <p v-if="isCalling">Calling {{ comboboxSelected.name }}</p>
+      <button
+        v-if="isCalling"
+        @click="cancelCall()"
+        class="p-2 rounded-md disabled:opacity-50 text-white bg-red-500 hover:bg-red-600"
+      >
+        Cancel Call
+      </button>
     </div>
-    <div v-else class="flex items-center justify-center gap-4 p-4">
-      <button @click="sendAnswer(false)" class="p-2 rounded-md bg-red-500 text-white">
-        Reject
-      </button>
-      <button @click="sendAnswer(true)" class="p-2 rounded-md bg-green-500 text-white">
-        Accept
-      </button>
+    <div v-else class="flex flex-col items-center justify-center gap-2 p-4">
+      <p class="text-black dark:text-white">Incoming call from {{ callData.Sender.Name }}</p>
+      <div class="flex gap-4 justify-center items-center">
+        <button
+          @click="sendAnswer(false)"
+          class="p-2 rounded-md bg-red-500 hover:bg-red-600 text-white"
+        >
+          Reject
+        </button>
+        <button
+          @click="sendAnswer(true)"
+          class="p-2 rounded-md bg-green-500 hover:bg-green-600 text-white"
+        >
+          Accept
+        </button>
+      </div>
     </div>
   </main>
 </template>

@@ -1,12 +1,13 @@
 <script setup>
 import { ChevronLeftIcon, XMarkIcon, PhotoIcon } from '@heroicons/vue/24/solid'
-import { PaperAirplaneIcon, PlusCircleIcon, ClockIcon } from '@heroicons/vue/24/outline'
+import { PaperAirplaneIcon, PlusCircleIcon, ClockIcon, PhoneIcon } from '@heroicons/vue/24/outline'
 import { ExclamationCircleIcon } from '@heroicons/vue/16/solid'
-import { RouterLink, useRoute } from 'vue-router'
+import { RouterLink, useRoute, useRouter } from 'vue-router'
 import { initModals } from 'flowbite'
 import { onMounted, ref, onUnmounted, nextTick } from 'vue'
 import { useSocketStore } from '@/stores/socket'
 import { useChatStore } from '@/stores/chat'
+import { useCallStore } from '@/stores/call'
 import axios from '@/plugins/axios'
 import { RequestEventType } from '@/assets/js/enums'
 import alerts from '@/assets/js/alerts'
@@ -19,6 +20,7 @@ const route = useRoute()
 const userId = localStorage.getItem('userId')
 const userName = localStorage.getItem('name')
 const socket = useSocketStore()
+const callStore = useCallStore()
 const chatStore = useChatStore()
 const scrollHere = ref()
 const base64 = ref()
@@ -150,6 +152,7 @@ async function onSeen(event) {
     })
   })
 }
+
 async function onNewMessage(event) {
   await chatStore.filterUnSent(event.detail.LocalId)
   await chatStore.pushUnsaved(event.detail)
@@ -178,6 +181,7 @@ async function onNewMessage(event) {
     chatStore.addId(event.detail.ChatId)
   }
 }
+
 async function onSaveMessage(event) {
   await chatStore.filterUnSaved(event.detail.LocalId)
   if (event.detail.ChatId == Number(route.params.cid)) {
@@ -205,9 +209,11 @@ async function onSaveMessage(event) {
     }
   }
 }
+
 async function onNewChat(event) {
   chatStore.addId(event.detail.Payload.Chat.Id)
 }
+
 async function onDeleteMessage(event) {
   if (event.detail.ChatId == Number(route.params.cid)) {
     let key = document
@@ -230,6 +236,7 @@ async function onDeleteMessage(event) {
     chatStore.addId(event.detail.ChatId)
   }
 }
+
 async function onUserJoin(event) {
   if (event.detail.Payload.Chat.Id != Number(route.params.cid)) {
     chatStore.addId(event.detail.Payload.Chat.Id)
@@ -353,10 +360,12 @@ function closeImageSendModal() {
   base64.value = null
   fileInput.value.value = null
 }
+
 function showImage(str) {
   previewBase64.value = str
   imagePreviewMode.value = true
 }
+
 function closeImagePreview() {
   if (imagePreviewMode.value) {
     imagePreviewMode.value = false
@@ -391,6 +400,11 @@ function messageTime(time) {
   const minutes = date.getMinutes().toString().padStart(2, '0')
   const hours = date.getHours().toString().padStart(2, '0')
   return `${hours}:${minutes}`
+}
+
+function makeCall() {
+  const target = users.value.find((u) => u.Id != Number(userId))
+  callStore.startCall(target.Id, target.Name)
 }
 
 onMounted(async () => {
@@ -449,7 +463,6 @@ onUnmounted(() => {
       >
       <p
         v-else
-        :to="`/info/${route.params.cid}`"
         class="text-2xl font-semibold overflow-hidden dark:text-white text-black text-center"
       >
         {{ name }}
@@ -464,6 +477,15 @@ onUnmounted(() => {
       >
         <PlusCircleIcon
           class="size-7 text-green-500 dark:text-green-600 hover:text-green-600 dark:hover:text-green-700"
+        />
+      </button>
+      <button
+        v-else
+        @click="makeCall()"
+        class="size-7 flex justify-center items-center hover:scale-110"
+      >
+        <PhoneIcon
+          class="size-5 text-green-500 dark:text-green-600 hover:text-green-600 dark:hover:text-green-700"
         />
       </button>
 
@@ -500,8 +522,6 @@ onUnmounted(() => {
           </form>
         </div>
       </div>
-
-      <div v-if="users.length <= 2" class="w-[24px]"></div>
     </nav>
 
     <div

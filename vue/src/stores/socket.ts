@@ -35,13 +35,11 @@ export const useSocketStore = defineStore('socket', {
           if (data.Type == ResponseEventType.Message_Seen) {
             window.dispatchEvent(new CustomEvent('new-seen', { detail: data.Payload.MessageReads }))
           } else if (data.Type == ResponseEventType.Message_Received) {
-            window.dispatchEvent(new CustomEvent('new-message', { detail: data.Message }))
+            window.dispatchEvent(new CustomEvent('new-message', { detail: data }))
           } else if (data.Type == ResponseEventType.Message_Saved) {
-            window.dispatchEvent(new CustomEvent('save-message', { detail: data.Payload.Message }))
+            window.dispatchEvent(new CustomEvent('save-message', { detail: data }))
           } else if (data.Type == ResponseEventType.Message_Deleted) {
-            window.dispatchEvent(
-              new CustomEvent('delete-message', { detail: data.Payload.Message }),
-            )
+            window.dispatchEvent(new CustomEvent('delete-message', { detail: data }))
           } else if (data.Type == ResponseEventType.Chat_Created) {
             window.dispatchEvent(new CustomEvent('new-chat', { detail: data }))
           } else if (data.Type == ResponseEventType.Chat_UserAdded) {

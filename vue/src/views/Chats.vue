@@ -15,7 +15,6 @@ const uname = localStorage.getItem('name')
 const email = localStorage.getItem('email')
 const socket = useSocketStore()
 const chatStore = useChatStore()
-const chats = ref([])
 const chatName = ref('')
 const searchQuery = ref('')
 const multiselectSelected = ref([])
@@ -23,107 +22,24 @@ const multiselectOptions = ref([])
 const isLoading = ref(false)
 const fullScreen = ref(true)
 
-async function GetChats() {
-  const response = await axios(`/users/${userId}/chats`)
-  chats.value = response.data
-  chats.value.forEach((chat) => {
-    if (chat.count != 0) {
-      chatStore.addId(chat.id)
-    }
-  })
-}
-
 async function Search(query) {
   fullScreen.value = false
   isLoading.value = true
-  if (!query) {
-    await GetChats()
-    isLoading.value = false
-    return
-  }
-  query = query.toLowerCase()
-  isLoading.value = true
-  const response = await axios(`/users/${userId}/chats/search?searchTerm=${query}`)
-  chats.value = response.data
+  chatStore.searchChats(query)
   isLoading.value = false
 }
 
 async function onNewMessage(event) {
-  await chatStore.filterUnSent(event.detail.LocalId)
-  await chatStore.pushUnsaved(event.detail)
   const audio = new Audio('/sounds/notification.mp3')
   audio.play()
-  chatStore.addId(event.detail.ChatId)
-  if (searchQuery.value != '') {
-    return
-  }
-  const index = chats.value.findIndex((c) => c.id == event.detail.ChatId)
-  if (index != -1) {
-    const chat = chats.value[index]
-    if (chat.count != -1) {
-      chat.count += 1
-    }
-    if (index != 0) {
-      chats.value.splice(index, 1)
-      chats.value.splice(0, 0, chat)
-    }
-  }
-}
-
-async function onSaveMessage(event) {
-  await chatStore.filterUnSaved(event.detail.LocalId)
-}
-
-async function onDeleteMessage(event) {
-  chatStore.addId(event.detail.ChatId)
-  if (searchQuery.value != '') {
-    return
-  }
-  const index = chats.value.findIndex((c) => c.id == event.detail.ChatId)
-  if (index != -1) {
-    const chat = chats.value[index]
-    chat.count += 1
-    if (index != 0) {
-      chats.value.splice(index, 1)
-      chats.value.splice(0, 0, chat)
-    }
-  }
 }
 
 async function onNewChat(event) {
   if (event.detail.Sender.Id == Number(userId)) {
     router.push(`/messages/${event.detail.Payload.Chat.Id}`)
   } else {
-    chats.value.splice(0, 0, {
-      id: event.detail.Payload.Chat.Id,
-      name: event.detail.Payload.Chat.Name,
-      count: -1,
-    })
-    chatStore.addId(event.detail.Payload.Chat.Id)
     const audio = new Audio('/sounds/notification.mp3')
     audio.play()
-  }
-}
-
-async function onUserJoin(event) {
-  chatStore.addId(event.detail.Payload.Chat.Id)
-  if (searchQuery.value != '') {
-    return
-  }
-  let chat = chats.value.find((c) => c.id == event.detail.Payload.Chat.Id)
-  if (chat) {
-    if (chat.count != -1) {
-      chat.count += 1
-    }
-    let index = chats.value.indexOf(chat)
-    chats.value.splice(index, 1)
-    chats.value.splice(0, 0, chat)
-  } else {
-    chats.value.splice(0, 0, {
-      id: event.detail.Payload.Chat.Id,
-      name: event.detail.Payload.Chat.Name,
-      count: -1,
-    })
   }
 }
 
@@ -182,22 +98,18 @@ onMounted(async () => {
   isLoading.value = true
   initDropdowns()
   initModals()
-  await GetChats()
+  await chatStore.init()
   socket.connect()
   window.addEventListener('new-chat', onNewChat)
-  window.addEventListener('user-join', onUserJoin)
-  window.addEventListener('save-message', onSaveMessage)
   window.addEventListener('new-message', onNewMessage)
-  window.addEventListener('delete-message', onDeleteMessage)
   isLoading.value = false
 })
 
 onUnmounted(() => {
+  chatStore.searchQuery = ''
+  chatStore.filteredChats = chatStore.chats
   window.removeEventListener('new-chat', onNewChat)
-  window.removeEventListener('user-join', onUserJoin)
-  window.removeEventListener('save-message', onSaveMessage)
   window.removeEventListener('new-message', onNewMessage)
-  window.removeEventListener('delete-message', onDeleteMessage)
 })
 </script>
 
@@ -267,7 +179,7 @@ onUnmounted(() => {
           id="simple-search"
           class="bg-gray-200 border-0 text-gray-900 rounded-lg focus:ring-green-500 block w-full ps-8 p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-green-500 dark:focus:border-green-500"
           placeholder="Search chat name..."
-          :disabled="chats.length < 1 && searchQuery.length < 1"
+          :disabled="chatStore.filteredChats.length < 1 && searchQuery.length < 1"
         />
       </div>
 
@@ -380,7 +292,7 @@ onUnmounted(() => {
     <div class="relative min-h-[100px] px-4">
       <Loading v-if="isLoading" :is-full-page="fullScreen" />
       <RouterLink
-        v-for="chat in chats"
+        v-for="chat in chatStore.filteredChats"
         :to="`/messages/${chat.id}`"
         class="block border-b border-gray-300 dark:border-gray-400 p-4 hover:bg-green-100 dark:hover:bg-gray-700 dark:text-white"
       >
@@ -400,7 +312,10 @@ onUnmounted(() => {
           </span>
         </div>
       </RouterLink>
-      <div v-if="chats.length < 1 && isLoading == false" class="text-center text-gray-500 p-4">
+      <div
+        v-if="chatStore.filteredChats.length < 1 && isLoading == false"
+        class="text-center text-gray-500 p-4"
+      >
         No chats found.
       </div>
     </div>

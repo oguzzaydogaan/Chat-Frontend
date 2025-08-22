@@ -1,9 +1,13 @@
 <script setup lang="ts">
 import { RouterView } from 'vue-router'
-import AnswerCall from './components/AnswerCall.vue'
+import IncomingCall from './components/IncomingCall.vue'
+import Calling from './components/Calling.vue'
+import InCall from './components/InCall.vue'
 </script>
 
 <template>
-  <AnswerCall />
+  <IncomingCall />
+  <Calling />
+  <InCall />
   <RouterView />
 </template>

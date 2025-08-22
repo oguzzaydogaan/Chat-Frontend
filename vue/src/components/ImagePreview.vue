@@ -4,7 +4,7 @@ const props = defineProps(['img'])
 </script>
 
 <template>
-  <main class="absolute h-full w-full z-50">
+  <main class="absolute h-full w-full top-0 z-50">
     <div class="flex flex-col h-full">
       <nav class="absolute top-2 right-2 z-50">
         <button @click="$emit('close')" class="hover:scale-110 cursor-pointer">

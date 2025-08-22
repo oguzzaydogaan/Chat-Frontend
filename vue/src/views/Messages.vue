@@ -444,7 +444,7 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <main class="h-dvh flex flex-col justify-between">
+  <main class="flex-1 flex flex-col overflow-y-auto">
     <nav
       class="flex w-full bg-white dark:bg-gray-900 items-center justify-between mx-auto p-4 gap-x-4"
     >
@@ -482,7 +482,8 @@ onUnmounted(() => {
       <button
         v-else
         @click="makeCall()"
-        class="size-7 flex justify-center items-center hover:scale-110"
+        class="size-7 flex justify-center items-center hover:scale-110 disabled:opacity-50"
+        :disabled="callStore.isInCall || callStore.isCalling || callStore.isIncomingCall"
       >
         <PhoneIcon
           class="size-5 text-green-500 dark:text-green-600 hover:text-green-600 dark:hover:text-green-700"
@@ -526,7 +527,7 @@ onUnmounted(() => {
 
     <div
       @scroll="onScroll"
-      class="grow min-h-[200px] pt-2 overflow-y-auto bg-gray-100 dark:bg-gray-800"
+      class="flex-1 min-h-[200px] pt-2 overflow-y-auto bg-gray-100 dark:bg-gray-800"
     >
       <div v-for="(messages, key) in messagesWithDates" :key="key" :customname="key">
         <p

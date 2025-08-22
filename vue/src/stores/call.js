@@ -1,15 +1,13 @@
 import { defineStore } from 'pinia'
 import { nextTick, ref } from 'vue'
-import { useRouter } from 'vue-router'
 import { useSocketStore } from './socket'
 import { RequestEventType } from '@/assets/js/enums'
 
 export const useCallStore = defineStore('call', () => {
-  const router = useRouter()
+  const socketStore = useSocketStore()
   let userId = null
   let userName = null
   const otherUser = ref({ id: null, name: null })
-  const socketStore = useSocketStore()
   let pc = null
   let localStream = null
   let callData = null
@@ -18,6 +16,7 @@ export const useCallStore = defineStore('call', () => {
   const isIncomingCall = ref(false)
   const isInCall = ref(false)
   const isCalling = ref(false)
+  const showCallUI = ref(true)
 
   async function flushIceQueue() {
     for (const c of iceQueue) await pc.addIceCandidate(c)
@@ -85,9 +84,6 @@ export const useCallStore = defineStore('call', () => {
     }
     socketStore.sendMessage(message)
     isCalling.value = true
-    router.push({
-      name: 'call',
-    })
   }
 
   async function stopCall() {
@@ -98,6 +94,7 @@ export const useCallStore = defineStore('call', () => {
     isInCall.value = false
     isCalling.value = false
     isIncomingCall.value = false
+    showCallUI.value = true
     callData = null
     iceQueue = []
     remoteAudio.pause()
@@ -121,9 +118,6 @@ export const useCallStore = defineStore('call', () => {
       Sender: { Id: userId, Name: userName },
     })
     otherUser.value = { id: null, name: null }
-    if (router.currentRoute.value.name === 'call') {
-      router.push({ name: 'chats' })
-    }
   }
 
   async function cancelCall() {
@@ -139,9 +133,6 @@ export const useCallStore = defineStore('call', () => {
       Sender: { Id: userId, Name: userName },
     })
     otherUser.value = { id: null, name: null }
-    if (router.currentRoute.value.name === 'call') {
-      router.push({ name: 'chats' })
-    }
   }
 
   async function onCallOffer(event) {
@@ -181,7 +172,6 @@ export const useCallStore = defineStore('call', () => {
       socketStore.sendMessage(message)
 
       isInCall.value = true
-      router.push({ name: 'call' })
     } else {
       socketStore.sendMessage({
         Type: RequestEventType.Call_Reject,
@@ -211,9 +201,6 @@ export const useCallStore = defineStore('call', () => {
   async function onCallReject() {
     await stopCall()
     otherUser.value = { id: null, name: null }
-    if (router.currentRoute.value.name === 'call') {
-      router.push({ name: 'chats' })
-    }
   }
 
   async function onCallIce(event) {
@@ -231,6 +218,10 @@ export const useCallStore = defineStore('call', () => {
     }
   }
 
+  function changeShowCallUI() {
+    showCallUI.value = !showCallUI.value
+  }
+
   window.addEventListener('call-offer', onCallOffer)
   window.addEventListener('call-accept', onCallAccept)
   window.addEventListener('call-reject', onCallReject)
@@ -242,9 +233,11 @@ export const useCallStore = defineStore('call', () => {
     endCall,
     cancelCall,
     sendAnswer,
+    changeShowCallUI,
     isIncomingCall,
     isInCall,
     isCalling,
+    showCallUI,
     otherUser,
   }
 })

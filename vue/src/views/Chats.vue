@@ -202,7 +202,7 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <main class="min-h-dvh dark:bg-gray-900">
+  <main class="flex-1 dark:bg-gray-900">
     <nav class="flex flex-wrap w-full items-center justify-between mx-auto p-4">
       <div class="flex items-center space-x-1 rtl:space-x-reverse">
         <span class="text-2xl font-semibold whitespace-nowrap dark:text-white">Chats</span>
@@ -377,7 +377,7 @@ onUnmounted(() => {
       </div>
     </div>
 
-    <div class="relative min-h-[56.67px] px-4">
+    <div class="relative min-h-[100px] px-4">
       <Loading v-if="isLoading" :is-full-page="fullScreen" />
       <RouterLink
         v-for="chat in chats"

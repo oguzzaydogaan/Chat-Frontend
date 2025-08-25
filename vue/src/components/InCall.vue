@@ -1,7 +1,7 @@
 <script setup>
 import { useCallStore } from '@/stores/call'
 import { PhoneXMarkIcon } from '@heroicons/vue/24/outline'
-import { ChevronLeftIcon, ChevronRightIcon } from '@heroicons/vue/24/solid'
+import { ChevronLeftIcon } from '@heroicons/vue/24/solid'
 
 const callStore = useCallStore()
 </script>
@@ -26,6 +26,16 @@ const callStore = useCallStore()
         <div class="text-center">
           <p class="text-3xl font-medium">{{ callStore.otherUser.name }}</p>
           <p class="text-sm text-gray-500 dark:text-gray-400">In Call</p>
+          <p class="text-sm text-gray-500 dark:text-gray-400">
+            <span v-if="callStore.callHours > 0">{{
+              callStore.callHours.toString().padStart(2, '0') + ':'
+            }}</span
+            >{{
+              callStore.callMinutes.toString().padStart(2, '0') +
+              ':' +
+              callStore.callSeconds.toString().padStart(2, '0')
+            }}
+          </p>
         </div>
       </div>
 
@@ -42,7 +52,17 @@ const callStore = useCallStore()
       @click="callStore.changeShowCallUI"
       class="bg-green-500 hover:bg-green-600 dark:bg-green-600 dark:hover:bg-green-700 text-white flex items-center justify-center w-full"
     >
-      In call with {{ callStore.otherUser.name }}
+      In call with {{ callStore.otherUser.name }} -&nbsp;
+      <span v-if="callStore.callHours > 0" class="text-gray-200 text-xs">{{
+        callStore.callHours.toString().padStart(2, '0') + ':'
+      }}</span>
+      <span class="text-gray-200 text-xs">
+        {{
+          callStore.callMinutes.toString().padStart(2, '0') +
+          ':' +
+          callStore.callSeconds.toString().padStart(2, '0')
+        }}</span
+      >
     </button>
   </main>
 </template>

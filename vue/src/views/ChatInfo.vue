@@ -109,10 +109,11 @@ onUnmounted(() => {
       </div>
     </div>
 
-    <div class="relative min-h-[56.67px] px-4">
+    <div class="relative min-h-[100px] px-4">
       <Loading v-if="isLoading" :is-full-page="fullScreen" />
       <p
         v-for="user in filteredUsers"
+        v-if="!isLoading"
         class="block font-bold border-b hover:bg-green-100 border-gray-300 dark:border-gray-400 dark:text-white p-4 dark:hover:bg-gray-700"
       >
         {{ user.Name }}

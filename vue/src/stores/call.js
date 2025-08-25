@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { nextTick, ref } from 'vue'
+import { ref } from 'vue'
 import { useSocketStore } from './socket'
 import { RequestEventType } from '@/assets/js/enums'
 
@@ -17,6 +17,9 @@ export const useCallStore = defineStore('call', () => {
   const isInCall = ref(false)
   const isCalling = ref(false)
   const showCallUI = ref(true)
+  const callHours = ref(0)
+  const callMinutes = ref(0)
+  const callSeconds = ref(0)
 
   async function flushIceQueue() {
     for (const c of iceQueue) await pc.addIceCandidate(c)
@@ -40,11 +43,10 @@ export const useCallStore = defineStore('call', () => {
               Candidate: event.candidate.candidate,
               SdpMid: event.candidate.sdpMid,
               SdpMLineIndex: event.candidate.sdpMLineIndex,
-              SourceUserId: String(userId),
-              TargetUserId: targetId,
             },
           },
           Sender: { Id: userId, Name: userName },
+          Recievers: [targetId],
         })
       }
     }
@@ -60,7 +62,7 @@ export const useCallStore = defineStore('call', () => {
   async function startCall(targetId, targetName) {
     userId = Number(localStorage.getItem('userId'))
     userName = localStorage.getItem('name')
-    otherUser.value = { id: String(targetId), name: targetName }
+    otherUser.value = { id: targetId, name: targetName }
     pc = createPeerConnection(otherUser.value.id)
 
     if (!localStream) {
@@ -75,12 +77,11 @@ export const useCallStore = defineStore('call', () => {
       Payload: {
         Call: {
           Type: 'offer',
-          SourceUserId: String(userId),
-          TargetUserId: otherUser.value.id,
           Sdp: offer.sdp,
         },
       },
       Sender: { Id: userId, Name: userName },
+      Recievers: [otherUser.value.id, userId],
     }
     socketStore.sendMessage(message)
     isCalling.value = true
@@ -95,7 +96,6 @@ export const useCallStore = defineStore('call', () => {
     isCalling.value = false
     isIncomingCall.value = false
     showCallUI.value = true
-    callData = null
     iceQueue = []
     remoteAudio.pause()
     remoteAudio.srcObject = null
@@ -108,43 +108,35 @@ export const useCallStore = defineStore('call', () => {
   async function endCall() {
     await stopCall()
     socketStore.sendMessage({
-      Type: RequestEventType.Call_Reject,
-      Payload: {
-        Call: {
-          SourceUserId: String(userId),
-          TargetUserId: otherUser.value.id,
-        },
-      },
+      Type: RequestEventType.Call_End,
+      Payload: { Call: { CallId: callData.CallId } },
       Sender: { Id: userId, Name: userName },
+      Recievers: [otherUser.value.id],
     })
-    otherUser.value = { id: null, name: null }
   }
 
   async function cancelCall() {
     await stopCall()
     socketStore.sendMessage({
-      Type: RequestEventType.Call_Reject,
-      Payload: {
-        Call: {
-          SourceUserId: String(userId),
-          TargetUserId: otherUser.value.id,
-        },
-      },
+      Type: RequestEventType.Call_Cancel,
+      Payload: { Call: { CallId: callData.CallId } },
       Sender: { Id: userId, Name: userName },
+      Recievers: [otherUser.value.id],
     })
-    otherUser.value = { id: null, name: null }
   }
 
   async function onCallOffer(event) {
     userId = Number(localStorage.getItem('userId'))
     userName = localStorage.getItem('name')
     callData = event.detail.Payload.Call
-    otherUser.value = { id: String(event.detail.Sender.Id), name: event.detail.Sender.Name }
-    isIncomingCall.value = true
-    await nextTick()
+    if (event.detail.Sender.Id != userId) {
+      otherUser.value = { id: event.detail.Sender.Id, name: event.detail.Sender.Name }
+      isIncomingCall.value = true
+    }
   }
 
   async function sendAnswer(accept) {
+    let timer = null
     if (accept) {
       pc = createPeerConnection(otherUser.value.id)
 
@@ -156,35 +148,29 @@ export const useCallStore = defineStore('call', () => {
 
       const answer = await pc.createAnswer()
       await pc.setLocalDescription(answer)
-
       const message = {
         Type: RequestEventType.Call_Accept,
         Payload: {
           Call: {
             Type: 'answer',
-            SourceUserId: String(userId),
-            TargetUserId: otherUser.value.id,
             Sdp: answer.sdp,
+            CallId: callData.CallId,
           },
         },
         Sender: { Id: userId, Name: userName },
+        Recievers: [otherUser.value.id],
       }
       socketStore.sendMessage(message)
 
       isInCall.value = true
+      timer = startTimer()
     } else {
       socketStore.sendMessage({
         Type: RequestEventType.Call_Reject,
-        Payload: {
-          Call: {
-            SourceUserId: String(userId),
-            TargetUserId: otherUser.value.id,
-          },
-        },
+        Payload: { Call: { CallId: callData.CallId } },
         Sender: { Id: userId, Name: userName },
+        Recievers: [otherUser.value.id],
       })
-      callData = null
-      otherUser.value = { id: null, name: null }
     }
 
     isIncomingCall.value = false
@@ -196,11 +182,24 @@ export const useCallStore = defineStore('call', () => {
     isCalling.value = false
     await pc.setRemoteDescription({ type: 'answer', sdp: callData.Sdp })
     await flushIceQueue()
+    let timer = startTimer()
   }
 
-  async function onCallReject() {
-    await stopCall()
-    otherUser.value = { id: null, name: null }
+  async function startTimer() {
+    callMinutes.value = 0
+    callSeconds.value = 0
+    while (isInCall.value) {
+      await new Promise((resolve) => setTimeout(resolve, 1000))
+      callSeconds.value += 1
+      if (callSeconds.value == 60) {
+        callMinutes.value += 1
+        callSeconds.value = 0
+      }
+      if (callMinutes.value == 60) {
+        callHours.value += 1
+        callMinutes.value = 0
+      }
+    }
   }
 
   async function onCallIce(event) {
@@ -224,7 +223,9 @@ export const useCallStore = defineStore('call', () => {
 
   window.addEventListener('call-offer', onCallOffer)
   window.addEventListener('call-accept', onCallAccept)
-  window.addEventListener('call-reject', onCallReject)
+  window.addEventListener('call-cancel', stopCall)
+  window.addEventListener('call-reject', stopCall)
+  window.addEventListener('call-end', stopCall)
   window.addEventListener('call-ice', onCallIce)
 
   return {
@@ -239,5 +240,8 @@ export const useCallStore = defineStore('call', () => {
     isCalling,
     showCallUI,
     otherUser,
+    callHours,
+    callMinutes,
+    callSeconds,
   }
 })

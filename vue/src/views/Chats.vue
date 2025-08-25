@@ -22,7 +22,7 @@ const multiselectOptions = ref([])
 const isLoading = ref(false)
 const fullScreen = ref(true)
 
-async function Search(query) {
+async function search(query) {
   fullScreen.value = false
   isLoading.value = true
   chatStore.searchChats(query)
@@ -171,7 +171,7 @@ onUnmounted(() => {
           <MagnifyingGlassIcon class="text-gray-500 size-5" />
         </div>
         <input
-          @input="Search(searchQuery)"
+          @input="search(searchQuery)"
           v-model="searchQuery"
           name="search"
           autocomplete="off"
@@ -293,6 +293,7 @@ onUnmounted(() => {
       <Loading v-if="isLoading" :is-full-page="fullScreen" />
       <RouterLink
         v-for="chat in chatStore.filteredChats"
+        v-if="!isLoading"
         :to="`/messages/${chat.id}`"
         class="block border-b border-gray-300 dark:border-gray-400 p-4 hover:bg-green-100 dark:hover:bg-gray-700 dark:text-white"
       >

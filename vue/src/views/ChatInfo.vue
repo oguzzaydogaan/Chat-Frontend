@@ -67,7 +67,7 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <main class="min-h-dvh dark:bg-gray-900">
+  <main class="flex-1 dark:bg-gray-900">
     <nav class="flex w-full bg-white dark:bg-gray-900 items-center justify-between mx-auto p-4">
       <RouterLink :to="`/messages/${route.params.cid}`" class="flex items-center hover:scale-110">
         <ChevronLeftIcon class="size-6 text-black dark:text-white"
@@ -109,10 +109,11 @@ onUnmounted(() => {
       </div>
     </div>
 
-    <div class="relative min-h-[56.67px] px-4">
+    <div class="relative min-h-[100px] px-4">
       <Loading v-if="isLoading" :is-full-page="fullScreen" />
       <p
         v-for="user in filteredUsers"
+        v-if="!isLoading"
         class="block font-bold border-b hover:bg-green-100 border-gray-300 dark:border-gray-400 dark:text-white p-4 dark:hover:bg-gray-700"
       >
         {{ user.Name }}

@@ -7,7 +7,24 @@
     <title>Chat App</title>
   </head>
   <body class="h-dvh transition-all duration-300">
-    <div id="app" class="h-dvh overflow-y-auto flex flex-col"></div>
+    <div id="app" class="h-dvh overflow-y-auto flex flex-col scrollbar-hidden"></div>
     <script type="module" src="/src/main.ts"></script>
+    <script>
+      const app = document.getElementById('app') // # kaldırıldı
+      let timeout
+
+      app.addEventListener('scroll', () => {
+        // Scrollbar görünür yap
+        app.classList.add('scrollbar-visible')
+        app.classList.remove('scrollbar-hidden')
+
+        // 1 saniye sonra tekrar gizle
+        clearTimeout(timeout)
+        timeout = setTimeout(() => {
+          app.classList.remove('scrollbar-visible')
+          app.classList.add('scrollbar-hidden')
+        }, 1000)
+      })
+    </script>
   </body>
 </html>

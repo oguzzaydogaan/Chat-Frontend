@@ -10,6 +10,7 @@ export const useCallStore = defineStore('call', () => {
   const otherUser = ref({ id: null, name: null })
   let pc = null
   let localStream = null
+  const microphones = ref([])
   let callData = null
   let iceQueue = []
   const remoteAudio = new Audio()
@@ -20,6 +21,13 @@ export const useCallStore = defineStore('call', () => {
   const callHours = ref(0)
   const callMinutes = ref(0)
   const callSeconds = ref(0)
+  const isMute = ref(false)
+
+  async function getConnectedDevices(type) {
+    let devices = await navigator.mediaDevices.enumerateDevices()
+    devices = devices.filter((device) => device.kind === type)
+    return devices.filter((d) => d.deviceId !== 'default' && d.deviceId !== 'communications')
+  }
 
   async function flushIceQueue() {
     for (const c of iceQueue) await pc.addIceCandidate(c)
@@ -66,9 +74,11 @@ export const useCallStore = defineStore('call', () => {
     pc = createPeerConnection(otherUser.value.id)
 
     if (!localStream) {
-      localStream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false })
     }
     localStream.getTracks().forEach((track) => pc.addTrack(track, localStream))
+
+    microphones.value = await getConnectedDevices('audioinput')
 
     const offer = await pc.createOffer()
     await pc.setLocalDescription(offer)
@@ -96,6 +106,7 @@ export const useCallStore = defineStore('call', () => {
     isCalling.value = false
     isIncomingCall.value = false
     showCallUI.value = true
+    isMute.value = false
     iceQueue = []
     remoteAudio.pause()
     remoteAudio.srcObject = null
@@ -142,6 +153,8 @@ export const useCallStore = defineStore('call', () => {
 
       if (!localStream) localStream = await navigator.mediaDevices.getUserMedia({ audio: true })
       localStream.getTracks().forEach((t) => pc.addTrack(t, localStream))
+
+      microphones.value = await getConnectedDevices('audioinput')
 
       await pc.setRemoteDescription({ type: 'offer', sdp: callData.Sdp })
       await flushIceQueue()
@@ -221,6 +234,44 @@ export const useCallStore = defineStore('call', () => {
     showCallUI.value = !showCallUI.value
   }
 
+  async function toggleMic() {
+    let audioTrack = localStream.getTracks().find((track) => track.kind === 'audio')
+    if (audioTrack.enabled) {
+      audioTrack.enabled = false
+      isMute.value = true
+    } else {
+      audioTrack.enabled = true
+      isMute.value = false
+    }
+  }
+
+  async function setMicrophone(deviceId) {
+    const newStream = await navigator.mediaDevices.getUserMedia({
+      audio: { deviceId: { exact: deviceId } },
+      video: false,
+    })
+    const newTrack = newStream.getAudioTracks()[0]
+
+    if (!pc) return
+    const sender = pc.getSenders().find((s) => s.track && s.track.kind === 'audio')
+
+    if (sender) {
+      await sender.replaceTrack(newTrack)
+    } else {
+      pc.addTrack(newTrack, newStream)
+    }
+
+    if (localStream) {
+      localStream.getTracks().forEach((track) => track.stop())
+    }
+    debugger
+    localStream = newStream
+    if (isMute.value == true) {
+      let audioTrack = localStream.getTracks().find((track) => track.kind === 'audio')
+      audioTrack.enabled = false
+    }
+  }
+
   window.addEventListener('call-offer', onCallOffer)
   window.addEventListener('call-accept', onCallAccept)
   window.addEventListener('call-cancel', stopCall)
@@ -235,6 +286,9 @@ export const useCallStore = defineStore('call', () => {
     cancelCall,
     sendAnswer,
     changeShowCallUI,
+    toggleMic,
+    setMicrophone,
+    microphones,
     isIncomingCall,
     isInCall,
     isCalling,
@@ -243,5 +297,6 @@ export const useCallStore = defineStore('call', () => {
     callHours,
     callMinutes,
     callSeconds,
+    isMute,
   }
 })

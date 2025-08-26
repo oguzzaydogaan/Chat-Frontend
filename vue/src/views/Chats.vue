@@ -196,7 +196,7 @@ onUnmounted(() => {
       </button>
       <!-- Dropdown menu -->
       <div
-        class="z-10 hidden text-base list-none bg-gray-200 divide-y divide-gray-100 rounded-lg shadow-lg dark:bg-gray-700 dark:divide-gray-600"
+        class="z-50 hidden text-base list-none bg-gray-200 divide-y divide-gray-100 rounded-lg shadow-lg dark:bg-gray-700 dark:divide-gray-600"
         id="add-chat-dropdown"
       >
         <ul class="" aria-labelledby="user-menu-button">

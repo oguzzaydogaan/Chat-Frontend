@@ -58,7 +58,6 @@ onMounted(async () => {
   socket.connect()
   window.addEventListener('user-join', onUserJoin)
   isLoading.value = false
-  isLoading.value = false
 })
 
 onUnmounted(() => {

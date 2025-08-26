@@ -715,12 +715,12 @@ onUnmounted(() => {
       <button
         v-if="isScrolledUp"
         @click="goToBottom"
-        class="size-9 absolute right-2 -top-10 bg-gray-200 dark:bg-gray-700 rounded-full shadow-lg text-black dark:text-gray-400"
+        class="size-9 absolute right-2 -top-10 bg-gray-200 dark:bg-gray-700 rounded-full shadow-lg"
       >
-        <ChevronDownIcon class="size-9 text-black dark:text-gray-400 -mb-1" />
+        <ChevronDownIcon class="size-9 text-gray-500 dark:text-gray-400 -mb-1" />
         <p
           v-if="newMessageCount > 0"
-          class="absolute flex justify-center items-center min-w-4 px-1 -top-3 -right-0.5 text-xs text-white bg-green-500 rounded-full"
+          class="absolute flex justify-center items-center min-w-4 px-1 -top-3 -right-0.5 text-xs text-white bg-green-500 dark:bg-green-600 rounded-full"
         >
           <span>{{ newMessageCount > 99 ? '+99' : newMessageCount }}</span>
         </p>

@@ -18,8 +18,7 @@ function loopAudio() {
 
 <template>
   <main
-    v-if="callStore.isCalling"
-    class="absolute h-full w-full z-50 flex justify-center bg-white dark:bg-gray-900 dark:text-white"
+    class="absolute h-full w-full z-50 flex justify-center bg-white dark:bg-gray-900 dark:text-white overflow-y-auto"
   >
     <div class="flex flex-col justify-between items-center w-full max-w-sm py-16">
       <div class="flex flex-col items-center gap-4">

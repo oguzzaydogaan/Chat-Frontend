@@ -1,8 +1,8 @@
 <script setup>
-import { ChevronLeftIcon, XMarkIcon, PhotoIcon } from '@heroicons/vue/24/solid'
+import { ChevronLeftIcon, XMarkIcon, PhotoIcon, ChevronDownIcon } from '@heroicons/vue/24/solid'
 import { PaperAirplaneIcon, PlusCircleIcon, ClockIcon, PhoneIcon } from '@heroicons/vue/24/outline'
 import { ExclamationCircleIcon } from '@heroicons/vue/16/solid'
-import { RouterLink, useRoute, useRouter } from 'vue-router'
+import { RouterLink, useRoute } from 'vue-router'
 import { initModals } from 'flowbite'
 import { onMounted, ref, onUnmounted, nextTick } from 'vue'
 import { useSocketStore } from '@/stores/socket'
@@ -29,6 +29,7 @@ const fileInput = ref()
 const messages = ref()
 const messagesWithDates = ref({})
 const notSeenMessageIds = ref([])
+const newMessageCount = ref(0)
 const users = ref([])
 socket.SetChatId(Number(route.params.cid))
 const newMessage = ref()
@@ -138,7 +139,12 @@ async function GetChat() {
 
 async function onScroll(event) {
   let distance = event.target.scrollHeight - event.target.scrollTop - event.target.clientHeight
-  isScrolledUp.value = distance > 100
+  isScrolledUp.value = distance > 200
+}
+
+async function goToBottom() {
+  newMessageCount.value = 0
+  scrollHere.value.scrollIntoView({ behavior: 'smooth' })
 }
 
 async function onSeen(event) {
@@ -173,6 +179,8 @@ async function onNewMessage(event) {
     if (!isScrolledUp.value) {
       await nextTick()
       scrollHere.value.scrollIntoView({ behavior: 'smooth' })
+    } else if (isScrolledUp.value && message.UserId != Number(userId)) {
+      newMessageCount.value += 1
     }
   } else {
     const audio = new Audio('/sounds/notification.mp3')
@@ -437,12 +445,15 @@ onUnmounted(() => {
     <nav
       class="flex w-full bg-white dark:bg-gray-900 items-center justify-between mx-auto p-4 gap-x-4"
     >
-      <RouterLink to="/" class="hover:scale-110 cursor-pointer flex items-center">
+      <RouterLink to="/" class="hover:scale-110 cursor-pointer flex items-center relative">
         <ChevronLeftIcon class="size-7 text-black dark:text-white" />
-        <p v-if="chatStore.notSeenChatIds.length > 0" class="absolute ms-6 dark:text-white text-sm">
+        <span
+          v-if="chatStore.notSeenChatIds.length > 0"
+          class="absolute -right-1.5 transform translate-x-1/2 text-sm font-semibold leading-none text-white"
+        >
           {{ chatStore.notSeenChatIds.length <= 99 ? chatStore.notSeenChatIds.length : '+99' }}
-        </p></RouterLink
-      >
+        </span>
+      </RouterLink>
 
       <RouterLink
         v-if="users.length > 2"
@@ -700,7 +711,21 @@ onUnmounted(() => {
 
       <div ref="scrollHere"></div>
     </div>
-
+    <div class="relative w-full">
+      <button
+        v-if="isScrolledUp"
+        @click="goToBottom"
+        class="size-9 absolute right-2 -top-10 bg-gray-200 dark:bg-gray-700 rounded-full shadow-lg text-black dark:text-gray-400"
+      >
+        <ChevronDownIcon class="size-9 text-black dark:text-gray-400 -mb-1" />
+        <p
+          v-if="newMessageCount > 0"
+          class="absolute flex justify-center items-center min-w-4 px-1 -top-3 -right-0.5 text-xs text-white bg-green-500 rounded-full"
+        >
+          <span>{{ newMessageCount > 99 ? '+99' : newMessageCount }}</span>
+        </p>
+      </button>
+    </div>
     <form
       @submit.prevent="sendMessage(newMessage, base64)"
       class="flex justify-between items-center px-2 py-3 gap-1.5 bg-white dark:bg-gray-900 border-t-2 border-gray-200 dark:border-0"

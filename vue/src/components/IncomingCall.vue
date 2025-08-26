@@ -7,7 +7,6 @@ const callStore = useCallStore()
 
 <template>
   <main
-    v-if="callStore.isIncomingCall"
     class="absolute h-full w-full z-50 flex flex-col items-center bg-white text-black dark:bg-gray-900 dark:text-white"
   >
     <audio src="/sounds/incoming-call.mp3" loop autoplay playsinline="true"></audio>

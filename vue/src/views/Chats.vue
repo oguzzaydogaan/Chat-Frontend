@@ -146,11 +146,12 @@ onUnmounted(() => {
           </div>
           <ul class="" aria-labelledby="user-menu-button">
             <li>
-              <button
-                class="block w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 dark:text-gray-200 dark:hover:text-white"
+              <RouterLink
+                to="/calls"
+                class="block text-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 dark:text-gray-200 dark:hover:text-white"
               >
-                Settings
-              </button>
+                Call History
+              </RouterLink>
             </li>
             <li>
               <button

@@ -264,7 +264,6 @@ export const useCallStore = defineStore('call', () => {
     if (localStream) {
       localStream.getTracks().forEach((track) => track.stop())
     }
-    debugger
     localStream = newStream
     if (isMute.value == true) {
       let audioTrack = localStream.getTracks().find((track) => track.kind === 'audio')

@@ -97,7 +97,7 @@ export const useCallStore = defineStore('call', () => {
     isCalling.value = true
   }
 
-  async function stopCall() {
+  async function stopCall(answerType) {
     if (pc) {
       pc.close()
       pc = null
@@ -114,10 +114,27 @@ export const useCallStore = defineStore('call', () => {
       localStream.getTracks().forEach((t) => t.stop())
       localStream = null
     }
+    window.dispatchEvent(
+      new CustomEvent('add-call-to-history', {
+        detail: {
+          id: callData.CallId,
+          caller:
+            callData.CallerId == userId
+              ? { id: userId, name: userName }
+              : { id: otherUser.value.id, name: otherUser.value.name },
+          callee:
+            callData.CallerId == userId
+              ? { id: otherUser.value.id, name: otherUser.value.name }
+              : { id: userId, name: userName },
+          answerType: answerType,
+          callTime: callData.CallTime,
+        },
+      }),
+    )
   }
 
   async function endCall() {
-    await stopCall()
+    await stopCall(2)
     socketStore.sendMessage({
       Type: RequestEventType.Call_End,
       Payload: { Call: { CallId: callData.CallId } },
@@ -127,7 +144,7 @@ export const useCallStore = defineStore('call', () => {
   }
 
   async function cancelCall() {
-    await stopCall()
+    await stopCall(1)
     socketStore.sendMessage({
       Type: RequestEventType.Call_Cancel,
       Payload: { Call: { CallId: callData.CallId } },
@@ -168,6 +185,8 @@ export const useCallStore = defineStore('call', () => {
             Type: 'answer',
             Sdp: answer.sdp,
             CallId: callData.CallId,
+            CallerId: callData.CallerId,
+            CallTime: callData.CallTime,
           },
         },
         Sender: { Id: userId, Name: userName },
@@ -184,6 +203,23 @@ export const useCallStore = defineStore('call', () => {
         Sender: { Id: userId, Name: userName },
         Recievers: [otherUser.value.id],
       })
+      window.dispatchEvent(
+        new CustomEvent('add-call-to-history', {
+          detail: {
+            id: callData.CallId,
+            caller:
+              callData.CallerId == userId
+                ? { id: userId, name: userName }
+                : { id: otherUser.value.id, name: otherUser.value.name },
+            callee:
+              callData.CallerId == userId
+                ? { id: otherUser.value.id, name: otherUser.value.name }
+                : { id: userId, name: userName },
+            answerType: 3,
+            callTime: callData.CallTime,
+          },
+        }),
+      )
     }
 
     isIncomingCall.value = false
@@ -273,9 +309,9 @@ export const useCallStore = defineStore('call', () => {
 
   window.addEventListener('call-offer', onCallOffer)
   window.addEventListener('call-accept', onCallAccept)
-  window.addEventListener('call-cancel', stopCall)
-  window.addEventListener('call-reject', stopCall)
-  window.addEventListener('call-end', stopCall)
+  window.addEventListener('call-cancel', async () => await stopCall(1))
+  window.addEventListener('call-reject', async () => await stopCall(3))
+  window.addEventListener('call-end', async () => await stopCall(2))
   window.addEventListener('call-ice', onCallIce)
 
   return {

@@ -10,6 +10,7 @@ export const useChatStore = defineStore('chat', () => {
   const chats = ref([])
   const notSeenChatIds = ref([])
   const filteredChats = ref([])
+  const filter = ref(0)
   const searchQuery = ref('')
   const unSentMessagesDb = ref([])
   const unSentMessages = ref([])
@@ -30,13 +31,17 @@ export const useChatStore = defineStore('chat', () => {
     let chat = null
     switch (type) {
       case 0:
-        chat = { id: event.detail.Payload.Chat.Id, name: event.detail.Payload.Chat.Name }
+        chat = {
+          id: event.detail.Payload.Chat.Id,
+          name: event.detail.Payload.Chat.Name,
+          userCount: event.detail.Payload.Chat.Users.length,
+        }
         break
       case 1:
-        chat = { id: event.detail.Payload.Message.ChatId, name: null }
+        chat = { id: event.detail.Payload.Message.ChatId }
         break
       case 2:
-        chat = { id: event.detail.Message.ChatId, name: null }
+        chat = { id: event.detail.Message.ChatId }
         break
     }
 
@@ -62,11 +67,20 @@ export const useChatStore = defineStore('chat', () => {
         id: chat.id,
         name: chat.name,
         count: -1,
+        userCount: chat.userCount,
       })
     }
 
-    if (searchQuery.value == '') {
+    if (searchQuery.value == '' && filter.value == 0) {
       filteredChats.value = chats.value
+    } else if (searchQuery.value == '' && filter.value == 1) {
+      filteredChats.value = chats.value.filter((c) => c.count != 0)
+    } else if (searchQuery.value == '' && filter.value == 2) {
+      filteredChats.value = chats.value.filter((c) => c.userCount > 2)
+    } else if (searchQuery.value == '' && filter.value == 3) {
+      filteredChats.value = chats.value.filter((c) => c.userCount == 2)
+    } else {
+      searchChats(searchQuery.value)
     }
   }
 
@@ -169,6 +183,7 @@ export const useChatStore = defineStore('chat', () => {
   return {
     chats,
     filteredChats,
+    filter,
     searchQuery,
     notSeenChatIds,
     unSentMessagesDb,

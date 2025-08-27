@@ -2,7 +2,7 @@
 import { PlusCircleIcon, XMarkIcon, MagnifyingGlassIcon } from '@heroicons/vue/24/outline'
 import { initDropdowns, initModals } from 'flowbite'
 import { RouterLink, useRouter } from 'vue-router'
-import { onMounted, onUnmounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useSocketStore } from '@/stores/socket'
 import { useChatStore } from '@/stores/chat'
 import axios from '@/plugins/axios'
@@ -15,6 +15,12 @@ const uname = localStorage.getItem('name')
 const email = localStorage.getItem('email')
 const socket = useSocketStore()
 const chatStore = useChatStore()
+const groupUnreadCount = computed(
+  () => chatStore.chats.filter((c) => c.userCount > 2 && c.count != 0).length,
+)
+const personalUnreadCount = computed(
+  () => chatStore.chats.filter((c) => c.userCount == 2 && c.count != 0).length,
+)
 const chatName = ref('')
 const searchQuery = ref('')
 const multiselectSelected = ref([])
@@ -115,7 +121,7 @@ onUnmounted(() => {
 
 <template>
   <main class="flex-1 dark:bg-gray-900">
-    <nav class="flex flex-wrap w-full items-center justify-between mx-auto p-4">
+    <nav class="flex w-full items-center justify-between mx-auto p-4">
       <div class="flex items-center space-x-1 rtl:space-x-reverse">
         <span class="text-2xl font-semibold whitespace-nowrap dark:text-white">Chats</span>
       </div>
@@ -290,25 +296,100 @@ onUnmounted(() => {
       </div>
     </div>
 
+    <div class="w-full px-4 flex justify-center items-center mt-2 mb-1">
+      <div class="flex gap-4 text-gray-800 dark:text-white overflow-x-auto">
+        <button
+          @click="
+            () => {
+              chatStore.filteredChats = chatStore.chats
+              chatStore.searchQuery = ''
+              chatStore.filter = 0
+              searchQuery = ''
+            }
+          "
+          class="py-0.5 px-3 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 rounded-full"
+        >
+          All
+        </button>
+        <button
+          @click="
+            () => {
+              chatStore.filteredChats = chatStore.chats.filter((c) => c.count != 0)
+              chatStore.searchQuery = ''
+              chatStore.filter = 1
+              searchQuery = ''
+            }
+          "
+          class="py-0.5 px-3 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 rounded-full flex items-center gap-1"
+        >
+          Unread
+          <span
+            v-if="chatStore.notSeenChatIds.length > 0"
+            class="inline-flex items-center justify-center px-1 py-0.5 text-xs font-bold leading-none text-white bg-green-500 dark:bg-green-700 rounded-full"
+          >
+            {{ chatStore.notSeenChatIds.length > 99 ? '+99' : chatStore.notSeenChatIds.length }}
+          </span>
+        </button>
+        <button
+          @click="
+            () => {
+              chatStore.filteredChats = chatStore.chats.filter((c) => c.userCount > 2)
+              chatStore.searchQuery = ''
+              chatStore.filter = 2
+              searchQuery = ''
+            }
+          "
+          class="py-0.5 px-3 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 rounded-full flex items-center gap-1"
+        >
+          Groups
+          <span
+            v-if="groupUnreadCount > 0"
+            class="inline-flex items-center justify-center px-1 py-0.5 text-xs font-bold leading-none text-white bg-green-500 dark:bg-green-700 rounded-full"
+          >
+            {{ groupUnreadCount > 99 ? '+99' : groupUnreadCount }}
+          </span>
+        </button>
+        <button
+          @click="
+            () => {
+              chatStore.filteredChats = chatStore.chats.filter((c) => c.userCount == 2)
+              chatStore.searchQuery = ''
+              chatStore.filter = 3
+              searchQuery = ''
+            }
+          "
+          class="py-0.5 px-3 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 rounded-full flex items-center gap-1"
+        >
+          Personals
+          <span
+            v-if="personalUnreadCount > 0"
+            class="inline-flex items-center justify-center px-1 py-0.5 text-xs font-bold leading-none text-white bg-green-500 dark:bg-green-700 rounded-full"
+          >
+            {{ personalUnreadCount > 99 ? '+99' : personalUnreadCount }}
+          </span>
+        </button>
+      </div>
+    </div>
+
     <div class="relative min-h-[100px] px-4">
       <Loading v-if="isLoading" :is-full-page="fullScreen" />
       <RouterLink
         v-for="chat in chatStore.filteredChats"
         v-if="!isLoading"
         :to="`/messages/${chat.id}`"
-        class="block border-b border-gray-300 dark:border-gray-400 p-4 hover:bg-green-100 dark:hover:bg-gray-700 dark:text-white"
+        class="block border-b border-gray-300 dark:border-gray-400 p-4 hover:bg-gray-100 dark:hover:bg-gray-700 dark:text-white"
       >
         <div class="font-bold flex justify-between items-center">
           <p>{{ chat.name }}</p>
           <span
             v-if="chat.count > 0"
-            class="bg-green-500 text-white text-xs font-medium rounded-full px-2 py-0.5"
+            class="bg-green-500 dark:bg-green-600 text-white text-xs font-medium rounded-full px-2 py-0.5"
           >
             {{ chat.count }}
           </span>
           <span
             v-if="chat.count == -1"
-            class="bg-green-500 text-white text-xs font-medium rounded-full px-2 py-0.5 text-center"
+            class="bg-green-500 dark:bg-green-600 text-white text-xs font-medium rounded-full px-2 py-0.5 text-center"
           >
             new
           </span>

@@ -407,8 +407,8 @@ function makeCall() {
 
 onMounted(async () => {
   isLoading.value = true
-  await GetChat()
   await chatStore.init()
+  await GetChat()
   chatStore.removeId(Number(route.params.cid))
   socket.connect()
   window.addEventListener('save-message', onSaveMessage)

@@ -8,7 +8,9 @@ const props = defineProps(['img'])
     <div class="flex flex-col h-full">
       <nav class="absolute top-2 right-2 z-50">
         <button @click="$emit('close')" class="hover:scale-110 cursor-pointer">
-          <XMarkIcon class="dark:text-white size-6" />
+          <XMarkIcon
+            class="text-gray-500 dark:text-white size-6 bg-gray-300 dark:bg-gray-700 rounded-full shadow-md"
+          />
         </button>
       </nav>
       <div class="relative grow items-center justify-center bg-gray-100/95 dark:bg-gray-800/95">

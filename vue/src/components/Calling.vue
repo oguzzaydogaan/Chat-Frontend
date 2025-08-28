@@ -20,7 +20,15 @@ function loopAudio() {
   <main
     class="absolute h-full w-full z-50 flex justify-center bg-white dark:bg-gray-900 dark:text-white overflow-y-auto"
   >
-    <div class="flex flex-col justify-between items-center w-full max-w-sm py-16">
+    <div class="flex flex-col flex-1 justify-between items-center gap-2 max-w-sm py-[6dvh]">
+      <audio
+        ref="audio"
+        src="/sounds/calling.mp3"
+        @play="audio.playbackRate = 0.5"
+        @ended="loopAudio"
+        autoplay
+        playsinline
+      ></audio>
       <div class="flex flex-col items-center gap-4">
         <img
           class="size-32 rounded-full ring-2 ring-gray-300 dark:ring-gray-700"
@@ -31,15 +39,6 @@ function loopAudio() {
           <p class="text-3xl text-medium">{{ callStore.otherUser.name }}</p>
           <p class="text-sm text-gray-500 dark:text-gray-400">Calling</p>
         </div>
-
-        <audio
-          ref="audio"
-          src="/sounds/calling.mp3"
-          @play="audio.playbackRate = 0.5"
-          @ended="loopAudio"
-          autoplay
-          playsinline
-        ></audio>
       </div>
 
       <button

@@ -11,6 +11,7 @@ export const useCallStore = defineStore('call', () => {
   let pc = null
   let localStream = null
   const microphones = ref([])
+  const speakers = ref([])
   let callData = null
   let iceQueue = []
   const remoteAudio = new Audio()
@@ -79,6 +80,7 @@ export const useCallStore = defineStore('call', () => {
     localStream.getTracks().forEach((track) => pc.addTrack(track, localStream))
 
     microphones.value = await getConnectedDevices('audioinput')
+    speakers.value = await getConnectedDevices('audiooutput')
 
     const offer = await pc.createOffer()
     await pc.setLocalDescription(offer)
@@ -172,6 +174,7 @@ export const useCallStore = defineStore('call', () => {
       localStream.getTracks().forEach((t) => pc.addTrack(t, localStream))
 
       microphones.value = await getConnectedDevices('audioinput')
+      speakers.value = await getConnectedDevices('audiooutput')
 
       await pc.setRemoteDescription({ type: 'offer', sdp: callData.Sdp })
       await flushIceQueue()
@@ -307,6 +310,10 @@ export const useCallStore = defineStore('call', () => {
     }
   }
 
+  async function setOutput(deviceId) {
+    remoteAudio.setSinkId(deviceId)
+  }
+
   window.addEventListener('call-offer', onCallOffer)
   window.addEventListener('call-accept', onCallAccept)
   window.addEventListener('call-cancel', async () => await stopCall(1))
@@ -323,7 +330,9 @@ export const useCallStore = defineStore('call', () => {
     changeShowCallUI,
     toggleMic,
     setMicrophone,
+    setOutput,
     microphones,
+    speakers,
     isIncomingCall,
     isInCall,
     isCalling,

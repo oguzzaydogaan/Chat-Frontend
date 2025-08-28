@@ -7,7 +7,7 @@ const imageMessage = ref(props.msg)
 </script>
 
 <template>
-  <main class="absolute h-full w-full z-50">
+  <main class="absolute h-full w-full top-0 z-50">
     <div class="flex flex-col h-full justify-between">
       <nav class="flex justify-end w-full bg-white dark:bg-gray-900 p-4 gap-x-4">
         <button @click="$emit('close')" class="hover:scale-110 cursor-pointer">

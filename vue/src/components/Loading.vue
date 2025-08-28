@@ -22,7 +22,7 @@ onUnmounted(() => {
       :can-cancel="false"
       :background-color="bg"
       :z-index="50"
-      loader="dots"
+      loader="spinner"
       :lock-scroll="true"
       color="#10B981"
     />

@@ -4,6 +4,6 @@
 @plugin "flowbite/plugin";
 @source "../../node_modules/flowbite";
 
-* {
-  transition: all 0.3s ease;
+::-webkit-scrollbar {
+  display: none;
 }

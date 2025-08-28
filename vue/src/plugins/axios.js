@@ -4,7 +4,6 @@ import db from './db'
 
 const instance = axios.create({
   baseURL: `https://${import.meta.env.VITE_BACKEND_URL}/api`,
-  timeout: 10000,
 })
 
 instance.interceptors.request.use(

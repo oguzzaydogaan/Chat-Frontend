@@ -2,7 +2,7 @@
 import { PlusCircleIcon, XMarkIcon, MagnifyingGlassIcon } from '@heroicons/vue/24/outline'
 import { initDropdowns, initModals } from 'flowbite'
 import { RouterLink, useRouter } from 'vue-router'
-import { onMounted, onUnmounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useSocketStore } from '@/stores/socket'
 import { useChatStore } from '@/stores/chat'
 import axios from '@/plugins/axios'
@@ -15,7 +15,12 @@ const uname = localStorage.getItem('name')
 const email = localStorage.getItem('email')
 const socket = useSocketStore()
 const chatStore = useChatStore()
-const chats = ref([])
+const groupUnreadCount = computed(
+  () => chatStore.chats.filter((c) => c.userCount > 2 && c.count != 0).length,
+)
+const personalUnreadCount = computed(
+  () => chatStore.chats.filter((c) => c.userCount == 2 && c.count != 0).length,
+)
 const chatName = ref('')
 const searchQuery = ref('')
 const multiselectSelected = ref([])
@@ -23,107 +28,24 @@ const multiselectOptions = ref([])
 const isLoading = ref(false)
 const fullScreen = ref(true)
 
-async function GetChats() {
-  const response = await axios(`/users/${userId}/chats`)
-  chats.value = response.data
-  chats.value.forEach((chat) => {
-    if (chat.count != 0) {
-      chatStore.addId(chat.id)
-    }
-  })
-}
-
-async function Search(query) {
+async function search(query) {
   fullScreen.value = false
   isLoading.value = true
-  if (!query) {
-    await GetChats()
-    isLoading.value = false
-    return
-  }
-  query = query.toLowerCase()
-  isLoading.value = true
-  const response = await axios(`/users/${userId}/chats/search?searchTerm=${query}`)
-  chats.value = response.data
+  chatStore.searchChats(query)
   isLoading.value = false
 }
 
 async function onNewMessage(event) {
-  await chatStore.filterUnSent(event.detail.LocalId)
-  await chatStore.pushUnsaved(event.detail)
   const audio = new Audio('/sounds/notification.mp3')
   audio.play()
-  chatStore.addId(event.detail.ChatId)
-  if (searchQuery.value != '') {
-    return
-  }
-  const index = chats.value.findIndex((c) => c.id == event.detail.ChatId)
-  if (index != -1) {
-    const chat = chats.value[index]
-    if (chat.count != -1) {
-      chat.count += 1
-    }
-    if (index != 0) {
-      chats.value.splice(index, 1)
-      chats.value.splice(0, 0, chat)
-    }
-  }
-}
-
-async function onSaveMessage(event) {
-  await chatStore.filterUnSaved(event.detail.LocalId)
-}
-
-async function onDeleteMessage(event) {
-  chatStore.addId(event.detail.ChatId)
-  if (searchQuery.value != '') {
-    return
-  }
-  const index = chats.value.findIndex((c) => c.id == event.detail.ChatId)
-  if (index != -1) {
-    const chat = chats.value[index]
-    chat.count += 1
-    if (index != 0) {
-      chats.value.splice(index, 1)
-      chats.value.splice(0, 0, chat)
-    }
-  }
 }
 
 async function onNewChat(event) {
   if (event.detail.Sender.Id == Number(userId)) {
     router.push(`/messages/${event.detail.Payload.Chat.Id}`)
   } else {
-    chats.value.splice(0, 0, {
-      id: event.detail.Payload.Chat.Id,
-      name: event.detail.Payload.Chat.Name,
-      count: -1,
-    })
-    chatStore.addId(event.detail.Payload.Chat.Id)
     const audio = new Audio('/sounds/notification.mp3')
     audio.play()
-  }
-}
-
-async function onUserJoin(event) {
-  chatStore.addId(event.detail.Payload.Chat.Id)
-  if (searchQuery.value != '') {
-    return
-  }
-  let chat = chats.value.find((c) => c.id == event.detail.Payload.Chat.Id)
-  if (chat) {
-    if (chat.count != -1) {
-      chat.count += 1
-    }
-    let index = chats.value.indexOf(chat)
-    chats.value.splice(index, 1)
-    chats.value.splice(0, 0, chat)
-  } else {
-    chats.value.splice(0, 0, {
-      id: event.detail.Payload.Chat.Id,
-      name: event.detail.Payload.Chat.Name,
-      count: -1,
-    })
   }
 }
 
@@ -182,28 +104,24 @@ onMounted(async () => {
   isLoading.value = true
   initDropdowns()
   initModals()
-  await GetChats()
+  await chatStore.init()
   socket.connect()
   window.addEventListener('new-chat', onNewChat)
-  window.addEventListener('user-join', onUserJoin)
-  window.addEventListener('save-message', onSaveMessage)
   window.addEventListener('new-message', onNewMessage)
-  window.addEventListener('delete-message', onDeleteMessage)
   isLoading.value = false
 })
 
 onUnmounted(() => {
+  chatStore.searchQuery = ''
+  chatStore.filteredChats = chatStore.chats
   window.removeEventListener('new-chat', onNewChat)
-  window.removeEventListener('user-join', onUserJoin)
-  window.removeEventListener('save-message', onSaveMessage)
   window.removeEventListener('new-message', onNewMessage)
-  window.removeEventListener('delete-message', onDeleteMessage)
 })
 </script>
 
 <template>
-  <main class="min-h-dvh dark:bg-gray-900">
-    <nav class="flex flex-wrap w-full items-center justify-between mx-auto p-4">
+  <main class="flex-1 dark:bg-gray-900">
+    <nav class="flex w-full items-center justify-between mx-auto p-4">
       <div class="flex items-center space-x-1 rtl:space-x-reverse">
         <span class="text-2xl font-semibold whitespace-nowrap dark:text-white">Chats</span>
       </div>
@@ -234,11 +152,12 @@ onUnmounted(() => {
           </div>
           <ul class="" aria-labelledby="user-menu-button">
             <li>
-              <button
-                class="block w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 dark:text-gray-200 dark:hover:text-white"
+              <RouterLink
+                to="/calls"
+                class="block text-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 dark:text-gray-200 dark:hover:text-white"
               >
-                Settings
-              </button>
+                Call History
+              </RouterLink>
             </li>
             <li>
               <button
@@ -259,7 +178,7 @@ onUnmounted(() => {
           <MagnifyingGlassIcon class="text-gray-500 size-5" />
         </div>
         <input
-          @input="Search(searchQuery)"
+          @input="search(searchQuery)"
           v-model="searchQuery"
           name="search"
           autocomplete="off"
@@ -267,7 +186,7 @@ onUnmounted(() => {
           id="simple-search"
           class="bg-gray-200 border-0 text-gray-900 rounded-lg focus:ring-green-500 block w-full ps-8 p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-green-500 dark:focus:border-green-500"
           placeholder="Search chat name..."
-          :disabled="chats.length < 1 && searchQuery.length < 1"
+          :disabled="chatStore.filteredChats.length < 1 && searchQuery.length < 1"
         />
       </div>
 
@@ -284,7 +203,7 @@ onUnmounted(() => {
       </button>
       <!-- Dropdown menu -->
       <div
-        class="z-10 hidden text-base list-none bg-gray-200 divide-y divide-gray-100 rounded-lg shadow-lg dark:bg-gray-700 dark:divide-gray-600"
+        class="z-50 hidden text-base list-none bg-gray-200 divide-y divide-gray-100 rounded-lg shadow-lg dark:bg-gray-700 dark:divide-gray-600"
         id="add-chat-dropdown"
       >
         <ul class="" aria-labelledby="user-menu-button">
@@ -377,30 +296,109 @@ onUnmounted(() => {
       </div>
     </div>
 
-    <div class="relative min-h-[56.67px] px-4">
+    <div class="w-full px-4 flex justify-center items-center mt-2 mb-1">
+      <div class="flex gap-4 text-gray-800 dark:text-white overflow-x-auto">
+        <button
+          @click="
+            () => {
+              chatStore.filteredChats = chatStore.chats
+              chatStore.searchQuery = ''
+              chatStore.filter = 0
+              searchQuery = ''
+            }
+          "
+          class="py-0.5 px-3 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 rounded-full"
+        >
+          All
+        </button>
+        <button
+          @click="
+            () => {
+              chatStore.filteredChats = chatStore.chats.filter((c) => c.count != 0)
+              chatStore.searchQuery = ''
+              chatStore.filter = 1
+              searchQuery = ''
+            }
+          "
+          class="py-0.5 px-3 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 rounded-full flex items-center gap-1"
+        >
+          Unread
+          <span
+            v-if="chatStore.notSeenChatIds.length > 0"
+            class="inline-flex items-center justify-center px-1 py-0.5 text-xs font-bold leading-none text-white bg-green-500 dark:bg-green-700 rounded-full"
+          >
+            {{ chatStore.notSeenChatIds.length > 99 ? '+99' : chatStore.notSeenChatIds.length }}
+          </span>
+        </button>
+        <button
+          @click="
+            () => {
+              chatStore.filteredChats = chatStore.chats.filter((c) => c.userCount > 2)
+              chatStore.searchQuery = ''
+              chatStore.filter = 2
+              searchQuery = ''
+            }
+          "
+          class="py-0.5 px-3 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 rounded-full flex items-center gap-1"
+        >
+          Groups
+          <span
+            v-if="groupUnreadCount > 0"
+            class="inline-flex items-center justify-center px-1 py-0.5 text-xs font-bold leading-none text-white bg-green-500 dark:bg-green-700 rounded-full"
+          >
+            {{ groupUnreadCount > 99 ? '+99' : groupUnreadCount }}
+          </span>
+        </button>
+        <button
+          @click="
+            () => {
+              chatStore.filteredChats = chatStore.chats.filter((c) => c.userCount == 2)
+              chatStore.searchQuery = ''
+              chatStore.filter = 3
+              searchQuery = ''
+            }
+          "
+          class="py-0.5 px-3 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 rounded-full flex items-center gap-1"
+        >
+          Personals
+          <span
+            v-if="personalUnreadCount > 0"
+            class="inline-flex items-center justify-center px-1 py-0.5 text-xs font-bold leading-none text-white bg-green-500 dark:bg-green-700 rounded-full"
+          >
+            {{ personalUnreadCount > 99 ? '+99' : personalUnreadCount }}
+          </span>
+        </button>
+      </div>
+    </div>
+
+    <div class="relative min-h-[100px] px-4">
       <Loading v-if="isLoading" :is-full-page="fullScreen" />
       <RouterLink
-        v-for="chat in chats"
+        v-for="chat in chatStore.filteredChats"
+        v-if="!isLoading"
         :to="`/messages/${chat.id}`"
-        class="block border-b border-gray-300 dark:border-gray-400 p-4 hover:bg-green-100 dark:hover:bg-gray-700 dark:text-white"
+        class="block border-b border-gray-300 dark:border-gray-400 p-4 hover:bg-gray-100 dark:hover:bg-gray-700 dark:text-white"
       >
         <div class="font-bold flex justify-between items-center">
           <p>{{ chat.name }}</p>
           <span
             v-if="chat.count > 0"
-            class="bg-green-500 text-white text-xs font-medium rounded-full px-2 py-0.5"
+            class="bg-green-500 dark:bg-green-600 text-white text-xs font-medium rounded-full px-2 py-0.5"
           >
             {{ chat.count }}
           </span>
           <span
             v-if="chat.count == -1"
-            class="bg-green-500 text-white text-xs font-medium rounded-full px-2 py-0.5 text-center"
+            class="bg-green-500 dark:bg-green-600 text-white text-xs font-medium rounded-full px-2 py-0.5 text-center"
           >
             new
           </span>
         </div>
       </RouterLink>
-      <div v-if="chats.length < 1 && isLoading == false" class="text-center text-gray-500 p-4">
+      <div
+        v-if="chatStore.filteredChats.length < 1 && isLoading == false"
+        class="text-center text-gray-500 p-4"
+      >
         No chats found.
       </div>
     </div>

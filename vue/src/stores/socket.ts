@@ -35,17 +35,27 @@ export const useSocketStore = defineStore('socket', {
           if (data.Type == ResponseEventType.Message_Seen) {
             window.dispatchEvent(new CustomEvent('new-seen', { detail: data.Payload.MessageReads }))
           } else if (data.Type == ResponseEventType.Message_Received) {
-            window.dispatchEvent(new CustomEvent('new-message', { detail: data.Message }))
+            window.dispatchEvent(new CustomEvent('new-message', { detail: data }))
           } else if (data.Type == ResponseEventType.Message_Saved) {
-            window.dispatchEvent(new CustomEvent('save-message', { detail: data.Payload.Message }))
+            window.dispatchEvent(new CustomEvent('save-message', { detail: data }))
           } else if (data.Type == ResponseEventType.Message_Deleted) {
-            window.dispatchEvent(
-              new CustomEvent('delete-message', { detail: data.Payload.Message }),
-            )
+            window.dispatchEvent(new CustomEvent('delete-message', { detail: data }))
           } else if (data.Type == ResponseEventType.Chat_Created) {
             window.dispatchEvent(new CustomEvent('new-chat', { detail: data }))
           } else if (data.Type == ResponseEventType.Chat_UserAdded) {
             window.dispatchEvent(new CustomEvent('user-join', { detail: data }))
+          } else if (data.Type == ResponseEventType.Call_Offered) {
+            window.dispatchEvent(new CustomEvent('call-offer', { detail: data }))
+          } else if (data.Type == ResponseEventType.Call_Cancelled) {
+            window.dispatchEvent(new CustomEvent('call-cancel', { detail: data }))
+          } else if (data.Type == ResponseEventType.Call_Accepted) {
+            window.dispatchEvent(new CustomEvent('call-accept', { detail: data }))
+          } else if (data.Type == ResponseEventType.Call_Rejected) {
+            window.dispatchEvent(new CustomEvent('call-reject', { detail: data }))
+          } else if (data.Type == ResponseEventType.Call_Ended) {
+            window.dispatchEvent(new CustomEvent('call-end', { detail: data }))
+          } else if (data.Type == ResponseEventType.Call_Ice) {
+            window.dispatchEvent(new CustomEvent('call-ice', { detail: data }))
           } else if (data.Type == ResponseEventType.Error) {
             if (data.Payload.Chat.Id != -1) {
               router.push(`/messages/${data.Payload.Chat.Id}`)

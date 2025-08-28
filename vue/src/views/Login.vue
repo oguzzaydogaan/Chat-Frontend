@@ -2,7 +2,6 @@
 import { onMounted, ref } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
 import axios from '@/plugins/axios'
-import db from '@/plugins/db'
 
 const email = ref('')
 const router = useRouter()
@@ -30,14 +29,12 @@ async function handleSignIn() {
 onMounted(async () => {
   if (localStorage.getItem('token')) {
     router.push('/chats')
-  } else {
-    await db.resetDb()
   }
 })
 </script>
 
 <template>
-  <main class="min-h-dvh bg-gray-200 dark:bg-gray-900">
+  <main class="flex-1 bg-gray-200 dark:bg-gray-900">
     <div class="flex flex-col items-center justify-center px-6 py-8 mx-auto min-h-dvh lg:py-0">
       <a
         href="#"

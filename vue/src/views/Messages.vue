@@ -1,12 +1,13 @@
 <script setup>
-import { ChevronLeftIcon, XMarkIcon, PhotoIcon } from '@heroicons/vue/24/solid'
-import { PaperAirplaneIcon, PlusCircleIcon, ClockIcon } from '@heroicons/vue/24/outline'
+import { ChevronLeftIcon, XMarkIcon, PhotoIcon, ChevronDownIcon } from '@heroicons/vue/24/solid'
+import { PaperAirplaneIcon, PlusCircleIcon, ClockIcon, PhoneIcon } from '@heroicons/vue/24/outline'
 import { ExclamationCircleIcon } from '@heroicons/vue/16/solid'
 import { RouterLink, useRoute } from 'vue-router'
 import { initModals } from 'flowbite'
 import { onMounted, ref, onUnmounted, nextTick } from 'vue'
 import { useSocketStore } from '@/stores/socket'
 import { useChatStore } from '@/stores/chat'
+import { useCallStore } from '@/stores/call'
 import axios from '@/plugins/axios'
 import { RequestEventType } from '@/assets/js/enums'
 import alerts from '@/assets/js/alerts'
@@ -19,6 +20,7 @@ const route = useRoute()
 const userId = localStorage.getItem('userId')
 const userName = localStorage.getItem('name')
 const socket = useSocketStore()
+const callStore = useCallStore()
 const chatStore = useChatStore()
 const scrollHere = ref()
 const base64 = ref()
@@ -27,6 +29,7 @@ const fileInput = ref()
 const messages = ref()
 const messagesWithDates = ref({})
 const notSeenMessageIds = ref([])
+const newMessageCount = ref(0)
 const users = ref([])
 socket.SetChatId(Number(route.params.cid))
 const newMessage = ref()
@@ -136,7 +139,12 @@ async function GetChat() {
 
 async function onScroll(event) {
   let distance = event.target.scrollHeight - event.target.scrollTop - event.target.clientHeight
-  isScrolledUp.value = distance > 100
+  isScrolledUp.value = distance > 200
+}
+
+async function goToBottom() {
+  newMessageCount.value = 0
+  scrollHere.value.scrollIntoView({ behavior: 'smooth' })
 }
 
 async function onSeen(event) {
@@ -150,20 +158,20 @@ async function onSeen(event) {
     })
   })
 }
+
 async function onNewMessage(event) {
-  await chatStore.filterUnSent(event.detail.LocalId)
-  await chatStore.pushUnsaved(event.detail)
-  if (event.detail.ChatId == Number(route.params.cid)) {
-    let key = FindKey(event.detail)
+  let message = event.detail.Message
+  if (message.ChatId == Number(route.params.cid)) {
+    let key = FindKey(message)
     if (!messagesWithDates.value[key]) {
-      messagesWithDates.value[key] = [event.detail]
+      messagesWithDates.value[key] = [message]
     } else {
-      if (event.detail.UserId != Number(userId)) {
-        let insertIndex = findInsertIndex(messagesWithDates.value[key], event.detail)
-        messagesWithDates.value[key].splice(insertIndex, 0, event.detail)
+      if (message.UserId != Number(userId)) {
+        let insertIndex = findInsertIndex(messagesWithDates.value[key], message)
+        messagesWithDates.value[key].splice(insertIndex, 0, message)
       } else {
-        let index = messagesWithDates.value[key].findIndex((m) => m.LocalId == event.detail.LocalId)
-        messagesWithDates.value[key][index] = event.detail
+        let index = messagesWithDates.value[key].findIndex((m) => m.LocalId == message.LocalId)
+        messagesWithDates.value[key][index] = message
       }
     }
     const audio = new Audio('/sounds/inside-chat-notification.mp3')
@@ -171,29 +179,31 @@ async function onNewMessage(event) {
     if (!isScrolledUp.value) {
       await nextTick()
       scrollHere.value.scrollIntoView({ behavior: 'smooth' })
+    } else if (isScrolledUp.value && message.UserId != Number(userId)) {
+      newMessageCount.value += 1
     }
   } else {
     const audio = new Audio('/sounds/notification.mp3')
     audio.play()
-    chatStore.addId(event.detail.ChatId)
   }
 }
+
 async function onSaveMessage(event) {
-  await chatStore.filterUnSaved(event.detail.LocalId)
-  if (event.detail.ChatId == Number(route.params.cid)) {
-    let key = FindKey(event.detail)
+  let message = event.detail.Payload.Message
+  if (message.ChatId == Number(route.params.cid)) {
+    let key = FindKey(message)
     if (!messagesWithDates.value[key]) {
-      messagesWithDates.value[key] = [event.detail]
+      messagesWithDates.value[key] = [message]
     } else {
-      let index = messagesWithDates.value[key].findIndex((m) => m.LocalId == event.detail.LocalId)
-      messagesWithDates.value[key][index] = event.detail
+      let index = messagesWithDates.value[key].findIndex((m) => m.LocalId == message.LocalId)
+      messagesWithDates.value[key][index] = message
     }
-    if (event.detail.Sender.Id != Number(userId)) {
+    if (message.Sender.Id != Number(userId)) {
       const socketMessage = {
         Type: RequestEventType.Message_See,
         Payload: {
-          Ids: [event.detail.Id],
-          Id: event.detail.ChatId,
+          Ids: [message.Id],
+          Id: message.ChatId,
         },
         Sender: { Id: Number(userId), Name: userName },
       }
@@ -205,36 +215,30 @@ async function onSaveMessage(event) {
     }
   }
 }
-async function onNewChat(event) {
-  chatStore.addId(event.detail.Payload.Chat.Id)
-}
+
 async function onDeleteMessage(event) {
-  if (event.detail.ChatId == Number(route.params.cid)) {
+  let message = event.detail.Payload.Message
+  if (message.ChatId == Number(route.params.cid)) {
     let key = document
-      .getElementById(event.detail.Id)
+      .getElementById(message.Id)
       .parentElement.parentElement.getAttribute('customname')
-    const idx = messagesWithDates.value[key].findIndex((m) => m.Id == event.detail.Id)
-    messagesWithDates.value[key][idx] = event.detail
-    if (event.detail.Sender.Id != Number(userId)) {
+    const idx = messagesWithDates.value[key].findIndex((m) => m.Id == message.Id)
+    messagesWithDates.value[key][idx] = message
+    if (message.Sender.Id != Number(userId)) {
       const socketMessage = {
         Type: RequestEventType.Message_See,
         Payload: {
-          Ids: [event.detail.Id],
-          Id: event.detail.ChatId,
+          Ids: [message.Id],
+          Id: message.ChatId,
         },
         Sender: { Id: Number(userId), Name: userName },
       }
       socket.sendMessage(socketMessage)
     }
-  } else {
-    chatStore.addId(event.detail.ChatId)
   }
 }
+
 async function onUserJoin(event) {
-  if (event.detail.Payload.Chat.Id != Number(route.params.cid)) {
-    chatStore.addId(event.detail.Payload.Chat.Id)
-    return
-  }
   if (!messagesWithDates.value['Today']) {
     messagesWithDates.value['Today'] = []
   }
@@ -353,10 +357,12 @@ function closeImageSendModal() {
   base64.value = null
   fileInput.value.value = null
 }
+
 function showImage(str) {
   previewBase64.value = str
   imagePreviewMode.value = true
 }
+
 function closeImagePreview() {
   if (imagePreviewMode.value) {
     imagePreviewMode.value = false
@@ -379,6 +385,7 @@ async function deleteMessage(id) {
     socket.sendMessage(socketMessage)
   }, 1000)
 }
+
 async function deleteCancel(id) {
   clearTimeout(timeOutId)
   const div = document.getElementById('mbox-' + id)
@@ -393,14 +400,19 @@ function messageTime(time) {
   return `${hours}:${minutes}`
 }
 
+function makeCall() {
+  const target = users.value.find((u) => u.Id != Number(userId))
+  callStore.startCall(target.Id, target.Name)
+}
+
 onMounted(async () => {
   isLoading.value = true
-  chatStore.removeId(Number(route.params.cid))
+  await chatStore.init()
   await GetChat()
+  chatStore.removeId(Number(route.params.cid))
   socket.connect()
   window.addEventListener('save-message', onSaveMessage)
   window.addEventListener('new-message', onNewMessage)
-  window.addEventListener('new-chat', onNewChat)
   window.addEventListener('new-seen', onSeen)
   window.addEventListener('user-join', onUserJoin)
   window.addEventListener('delete-message', onDeleteMessage)
@@ -424,22 +436,24 @@ onUnmounted(() => {
   window.removeEventListener('user-join', onUserJoin)
   window.removeEventListener('save-message', onSaveMessage)
   window.removeEventListener('new-message', onNewMessage)
-  window.removeEventListener('new-chat', onNewChat)
   window.removeEventListener('delete-message', onDeleteMessage)
 })
 </script>
 
 <template>
-  <main class="h-dvh flex flex-col justify-between">
+  <main class="flex-1 flex flex-col overflow-y-auto">
     <nav
       class="flex w-full bg-white dark:bg-gray-900 items-center justify-between mx-auto p-4 gap-x-4"
     >
-      <RouterLink to="/" class="hover:scale-110 cursor-pointer flex items-center">
+      <RouterLink to="/" class="hover:scale-110 cursor-pointer flex items-center relative">
         <ChevronLeftIcon class="size-7 text-black dark:text-white" />
-        <p v-if="chatStore.notSeenChatIds.length > 0" class="absolute ms-6 dark:text-white text-sm">
+        <span
+          v-if="chatStore.notSeenChatIds.length > 0"
+          class="absolute -right-1.5 transform translate-x-1/2 text-sm font-semibold leading-none text-white"
+        >
           {{ chatStore.notSeenChatIds.length <= 99 ? chatStore.notSeenChatIds.length : '+99' }}
-        </p></RouterLink
-      >
+        </span>
+      </RouterLink>
 
       <RouterLink
         v-if="users.length > 2"
@@ -449,7 +463,6 @@ onUnmounted(() => {
       >
       <p
         v-else
-        :to="`/info/${route.params.cid}`"
         class="text-2xl font-semibold overflow-hidden dark:text-white text-black text-center"
       >
         {{ name }}
@@ -464,6 +477,16 @@ onUnmounted(() => {
       >
         <PlusCircleIcon
           class="size-7 text-green-500 dark:text-green-600 hover:text-green-600 dark:hover:text-green-700"
+        />
+      </button>
+      <button
+        v-else
+        @click="makeCall()"
+        class="size-7 flex justify-center items-center hover:scale-110 disabled:opacity-50"
+        :disabled="callStore.isInCall || callStore.isCalling || callStore.isIncomingCall"
+      >
+        <PhoneIcon
+          class="size-5 text-green-500 dark:text-green-600 hover:text-green-600 dark:hover:text-green-700"
         />
       </button>
 
@@ -500,13 +523,11 @@ onUnmounted(() => {
           </form>
         </div>
       </div>
-
-      <div v-if="users.length <= 2" class="w-[24px]"></div>
     </nav>
 
     <div
       @scroll="onScroll"
-      class="grow min-h-[200px] pt-2 overflow-y-auto bg-gray-100 dark:bg-gray-800"
+      class="flex-1 min-h-[200px] pt-2 overflow-y-auto bg-gray-100 dark:bg-gray-800"
     >
       <div v-for="(messages, key) in messagesWithDates" :key="key" :customname="key">
         <p
@@ -690,7 +711,21 @@ onUnmounted(() => {
 
       <div ref="scrollHere"></div>
     </div>
-
+    <div class="relative w-full">
+      <button
+        v-if="isScrolledUp"
+        @click="goToBottom"
+        class="size-9 absolute right-2 -top-10 bg-gray-200 dark:bg-gray-700 rounded-full shadow-lg"
+      >
+        <ChevronDownIcon class="size-9 text-gray-500 dark:text-gray-400 -mb-1" />
+        <p
+          v-if="newMessageCount > 0"
+          class="absolute flex justify-center items-center min-w-4 px-1 -top-3 -right-0.5 text-xs text-white bg-green-500 dark:bg-green-600 rounded-full"
+        >
+          <span>{{ newMessageCount > 99 ? '+99' : newMessageCount }}</span>
+        </p>
+      </button>
+    </div>
     <form
       @submit.prevent="sendMessage(newMessage, base64)"
       class="flex justify-between items-center px-2 py-3 gap-1.5 bg-white dark:bg-gray-900 border-t-2 border-gray-200 dark:border-0"

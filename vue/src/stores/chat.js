@@ -46,7 +46,7 @@ export const useChatStore = defineStore('chat', () => {
     }
 
     if (
-      !event.detail.Sender.Id == Number(userId) ||
+      event.detail.Sender.Id != Number(userId) ||
       !(route.name == 'messages' && route.params.cid && Number(route.params.cid) == chat.id)
     ) {
       addId(chat.id)

@@ -71,14 +71,23 @@ export const useChatStore = defineStore('chat', () => {
       })
     }
 
-    if (searchQuery.value == '' && filter.value == 0) {
-      filteredChats.value = chats.value
-    } else if (searchQuery.value == '' && filter.value == 1) {
-      filteredChats.value = chats.value.filter((c) => c.count != 0)
-    } else if (searchQuery.value == '' && filter.value == 2) {
-      filteredChats.value = chats.value.filter((c) => c.userCount > 2)
-    } else if (searchQuery.value == '' && filter.value == 3) {
-      filteredChats.value = chats.value.filter((c) => c.userCount == 2)
+    if (searchQuery.value == '') {
+      switch (filter.value) {
+        case 0:
+          filteredChats.value = chats.value
+          break
+        case 1:
+          filteredChats.value = chats.value.filter((c) => c.count != 0)
+          break
+        case 2:
+          filteredChats.value = chats.value.filter((c) => c.userCount > 2)
+          break
+        case 3:
+          filteredChats.value = chats.value.filter((c) => c.userCount == 2)
+          break
+        default:
+          break
+      }
     } else {
       searchChats(searchQuery.value)
     }

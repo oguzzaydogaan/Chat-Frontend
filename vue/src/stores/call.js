@@ -75,7 +75,10 @@ export const useCallStore = defineStore('call', () => {
     pc = createPeerConnection(otherUser.value.id)
 
     if (!localStream) {
-      localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false })
+      localStream = await navigator.mediaDevices.getUserMedia({
+        audio: { noiseSuppression: true },
+        video: false,
+      })
     }
     localStream.getTracks().forEach((track) => pc.addTrack(track, localStream))
 
@@ -170,7 +173,10 @@ export const useCallStore = defineStore('call', () => {
     if (accept) {
       pc = createPeerConnection(otherUser.value.id)
 
-      if (!localStream) localStream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      if (!localStream)
+        localStream = await navigator.mediaDevices.getUserMedia({
+          audio: { noiseSuppression: true },
+        })
       localStream.getTracks().forEach((t) => pc.addTrack(t, localStream))
 
       microphones.value = await getConnectedDevices('audioinput')
@@ -286,7 +292,7 @@ export const useCallStore = defineStore('call', () => {
 
   async function setMicrophone(deviceId) {
     const newStream = await navigator.mediaDevices.getUserMedia({
-      audio: { deviceId: { exact: deviceId } },
+      audio: { deviceId: { exact: deviceId }, noiseSuppression: true },
       video: false,
     })
     const newTrack = newStream.getAudioTracks()[0]

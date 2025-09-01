@@ -36,7 +36,7 @@ function loopAudio() {
           alt="User Avatar"
         />
         <div class="text-center">
-          <p class="text-3xl text-medium">{{ callStore.otherUser.name }}</p>
+          <p class="text-3xl text-medium">a</p>
           <p class="text-sm text-gray-500 dark:text-gray-400">Calling</p>
         </div>
       </div>

@@ -401,8 +401,7 @@ function messageTime(time) {
 }
 
 function makeCall() {
-  const target = users.value.find((u) => u.Id != Number(userId))
-  callStore.startCall(target.Id, target.Name)
+  callStore.startCall(users.value.filter((u) => u.Id != Number(userId)))
 }
 
 onMounted(async () => {
@@ -480,7 +479,6 @@ onUnmounted(() => {
         />
       </button>
       <button
-        v-else
         @click="makeCall()"
         class="size-7 flex justify-center items-center hover:scale-110 disabled:opacity-50"
         :disabled="callStore.isInCall || callStore.isCalling || callStore.isIncomingCall"

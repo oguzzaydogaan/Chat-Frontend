@@ -24,8 +24,9 @@ const ResponseEventType = {
   Call_Accepted: 8,
   Call_Rejected: 9,
   Call_Ended: 10,
-  Call_Ice: 11,
-  Error: 12,
+  Call_SFUTokenReceived: 11,
+  Call_Ice: 12,
+  Error: 13,
 }
 
 export { RequestEventType, ResponseEventType }

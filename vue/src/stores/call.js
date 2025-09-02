@@ -2,7 +2,7 @@ import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { useSocketStore } from './socket'
 import { RequestEventType } from '@/assets/js/enums'
-import * as livekit from 'livekit-client'
+import { Room, RoomEvent, createLocalTracks } from 'livekit-client'
 
 export const useCallStore = defineStore('call', () => {
   const socketStore = useSocketStore()
@@ -10,12 +10,12 @@ export const useCallStore = defineStore('call', () => {
   let userName = null
   const otherUsers = ref([])
   let room = null
+  const participants = ref({})
   let localAudioTrack = null
   let pubTrack = null
   const microphones = ref([])
   const speakers = ref([])
   let call = null
-  const remoteAudio = new Audio()
   const isIncomingCall = ref(false)
   const isInCall = ref(false)
   const isCalling = ref(false)
@@ -31,7 +31,7 @@ export const useCallStore = defineStore('call', () => {
     return devices.filter((d) => d.deviceId !== 'default' && d.deviceId !== 'communications')
   }
 
-  async function startCall(callees) {
+  async function startCall(callees, id) {
     userId = Number(localStorage.getItem('userId'))
     userName = localStorage.getItem('name')
     otherUsers.value = callees
@@ -43,127 +43,155 @@ export const useCallStore = defineStore('call', () => {
           CallerId: userId,
           CalleesIds: callees.map((u) => u.Id),
           CallTime: new Date(),
+          ChatId: id,
         },
       },
       Sender: { Id: userId, Name: userName },
-      Recievers: otherUsers.value.map((u) => u.Id),
+      Receivers: otherUsers.value.map((u) => u.Id),
     }
     socketStore.sendMessage(message)
     isCalling.value = true
   }
 
-  async function stopCall() {
+  async function onSFUTokenReceived(event) {
+    if (!room) {
+      if (!call) {
+        call = event.detail.Call
+      }
+      room = new Room()
+      await room.connect(import.meta.env.VITE_LIVEKIT_URL, event.detail.Token)
+
+      room.on(RoomEvent.TrackSubscribed, (track, publication, participant) => {
+        if (track.kind === 'audio') {
+          const audioEl = new Audio()
+          audioEl.autoplay = true
+          audioEl.controls = false
+          track.attach(audioEl)
+          participant._audioEl = audioEl
+          participants.value[participant.identity] = participant.name
+        }
+      })
+
+      room.on(RoomEvent.TrackUnsubscribed, (track, publication, participant) => {
+        if (participant._audioEl) {
+          track.detach(participant._audioEl)
+          participant._audioEl.remove()
+          delete participant._audioEl
+          delete participants.value[participant.identity]
+        }
+      })
+
+      if (isIncomingCall.value) {
+        isIncomingCall.value = false
+        isInCall.value = true
+        let timer = startTimer()
+      }
+
+      if (isCalling.value && room.numParticipants > 0) {
+        console.log(room.numParticipants)
+        isCalling.value = false
+        isInCall.value = true
+      }
+
+      const tracks = await createLocalTracks({ audio: true, video: false })
+      localAudioTrack = tracks[0]
+      pubTrack = await room.localParticipant.publishTrack(localAudioTrack)
+
+      microphones.value = await getConnectedDevices('audioinput')
+      speakers.value = await getConnectedDevices('audiooutput')
+    }
+  }
+
+  async function resetAll() {
     if (room) {
       await room.disconnect()
       room = null
     }
-
+    call = null
     isInCall.value = false
     isCalling.value = false
     isIncomingCall.value = false
     showCallUI.value = true
     isMute.value = false
-    remoteAudio.pause()
-    remoteAudio.srcObject = null
     localAudioTrack = null
+    pubTrack = null
+    participants.value = {}
   }
 
   async function endCall() {
-    await stopCall()
+    socketStore.sendMessage({
+      Type: RequestEventType.Call_End,
+      Payload: { Call: call },
+      Sender: { Id: userId, Name: userName },
+      Receivers: otherUsers.value.map((u) => u.Id),
+    })
+    await resetAll()
   }
 
   async function cancelCall() {
-    await stopCall()
     socketStore.sendMessage({
       Type: RequestEventType.Call_Cancel,
-      Payload: { Call: { Id: call.Id } },
+      Payload: { Call: call },
       Sender: { Id: userId, Name: userName },
-      Recievers: otherUsers.value.map((u) => u.Id),
+      Receivers: otherUsers.value.map((u) => u.Id),
     })
+    await resetAll()
   }
 
   async function onCallOffer(event) {
-    userId = Number(localStorage.getItem('userId'))
-    userName = localStorage.getItem('name')
-    call = event.detail.Payload.Call
-    if (event.detail.Sender.Id != userId) {
+    if (!call) {
+      userId = Number(localStorage.getItem('userId'))
+      userName = localStorage.getItem('name')
+      call = event.detail.Payload.Call
       otherUsers.value = event.detail.Payload.Call.Callees.filter((u) => u.Id != userId)
       otherUsers.value.push(event.detail.Sender)
       isIncomingCall.value = true
     } else {
-      if (!room) {
-        room = new livekit.Room()
-        await room.connect('ws://localhost:7880', call.SFUToken)
-
-        room.on(livekit.RoomEvent.TrackSubscribed, (track, publication, participant) => {
-          if (track.kind === 'audio') {
-            track.attach(remoteAudio)
-            remoteAudio.play()
-          }
-        })
-
-        const tracks = await livekit.createLocalTracks({ audio: true, video: false })
-        localAudioTrack = tracks[0]
-        pubTrack = await room.localParticipant.publishTrack(localAudioTrack)
-
-        microphones.value = await getConnectedDevices('audioinput')
-        speakers.value = await getConnectedDevices('audiooutput')
-      }
+      //busy
     }
   }
 
   async function sendAnswer(accept) {
-    let timer = null
     if (accept) {
-      const message = {
+      socketStore.sendMessage({
         Type: RequestEventType.Call_Accept,
-        Payload: {
-          Call: call,
-        },
+        Payload: { Call: call },
         Sender: { Id: userId, Name: userName },
-        Recievers: otherUsers.value.map((u) => u.Id),
-      }
-      socketStore.sendMessage(message)
+        Receivers: otherUsers.value.map((u) => u.Id),
+      })
     } else {
       socketStore.sendMessage({
         Type: RequestEventType.Call_Reject,
-        Payload: { Call: { CallId: call.Id } },
+        Payload: { Call: call },
         Sender: { Id: userId, Name: userName },
-        Recievers: otherUsers.value.map((u) => u.Id),
+        Receivers: otherUsers.value.map((u) => u.Id),
       })
+      await resetAll()
     }
-
-    isIncomingCall.value = false
   }
 
   async function onCallAccept(event) {
     if (event.detail.Payload.Call.Id == call.Id) {
-      if (event.detail.Sender.Id == userId) {
-        isInCall.value = true
-        let timer = startTimer()
-        call = event.detail.Payload.Call
-        room = new livekit.Room()
-        await room.connect('ws://localhost:7880', call.SFUToken)
-
-        room.on(livekit.RoomEvent.TrackSubscribed, (track, publication, participant) => {
-          if (track.kind === 'audio') {
-            track.attach(remoteAudio)
-            remoteAudio.play()
-          }
-        })
-
-        const tracks = await livekit.createLocalTracks({ audio: true, video: false })
-        localAudioTrack = tracks[0]
-        pubTrack = await room.localParticipant.publishTrack(localAudioTrack)
-
-        microphones.value = await getConnectedDevices('audioinput')
-        speakers.value = await getConnectedDevices('audiooutput')
-      } else if (isInCall.value == true) {
-      } else if (event.detail.Payload.Call.Caller.Id == userId) {
-        inCallUsers.value.push(event.detail.Payload.Call.Caller)
-        isInCall.value = true
+      if (isCalling.value) {
         isCalling.value = false
+        isInCall.value = true
         let timer = startTimer()
+      }
+    }
+  }
+
+  async function onCallReject(event) {
+    if (event.detail.Payload.Call.Id == call.Id) {
+      if (isCalling.value && otherUsers.value.length == 1) {
+        await resetAll()
+      }
+    }
+  }
+
+  async function onCallEnd(event) {
+    if (event.detail.Payload.Call.Id == call.Id) {
+      if (isInCall.value && otherUsers.value.length == 1) {
+        await resetAll()
       }
     }
   }
@@ -191,7 +219,7 @@ export const useCallStore = defineStore('call', () => {
 
   async function toggleMic() {
     if (!room || !localAudioTrack) return
-    console.log(pubTrack)
+    console.log(room.remoteParticipants)
     if (isMute.value) {
       pubTrack.unmute()
     } else {
@@ -205,17 +233,18 @@ export const useCallStore = defineStore('call', () => {
     await room.switchActiveDevice('audioinput', deviceId)
   }
 
-  async function setOutput(deviceId) {
-    remoteAudio.setSinkId(deviceId)
-  }
+  async function setOutput(deviceId) {}
 
   window.addEventListener('call-offer', onCallOffer)
+  window.addEventListener('call-sfutoken-received', onSFUTokenReceived)
+  window.addEventListener('call-cancel', async () => await resetAll())
   window.addEventListener('call-accept', onCallAccept)
-  window.addEventListener('call-cancel', async () => await stopCall())
+  window.addEventListener('call-reject', onCallReject)
+  window.addEventListener('call-end', onCallEnd)
 
   return {
     startCall,
-    stopCall,
+    resetAll,
     endCall,
     cancelCall,
     sendAnswer,
@@ -223,6 +252,7 @@ export const useCallStore = defineStore('call', () => {
     toggleMic,
     setMicrophone,
     setOutput,
+    participants,
     microphones,
     speakers,
     isIncomingCall,

@@ -401,7 +401,10 @@ function messageTime(time) {
 }
 
 function makeCall() {
-  callStore.startCall(users.value.filter((u) => u.Id != Number(userId)))
+  callStore.startCall(
+    users.value.filter((u) => u.Id != Number(userId)),
+    Number(route.params.cid),
+  )
 }
 
 onMounted(async () => {

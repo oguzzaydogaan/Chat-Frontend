@@ -19,29 +19,21 @@ onMounted(() => initDropdowns())
       </button>
     </nav>
     <div class="flex flex-col flex-1 justify-between gap-2 items-center max-w-sm py-[6dvh]">
-      <div class="flex flex-col items-center gap-4 text-2xl">
-        <img
-          class="size-32 rounded-full ring-2 ring-gray-300 dark:ring-gray-700"
-          src="https://www.gravatar.com/avatar/?d=mp&s=200"
-          alt="User Avatar"
-        />
-        <div class="text-center">
-          <p class="text-3xl font-medium">{{}}</p>
-          <p class="text-sm text-gray-500 dark:text-gray-400">In Call</p>
-          <p class="text-sm text-gray-500 dark:text-gray-400">
-            <span v-if="callStore.callHours > 0">{{
-              callStore.callHours.toString().padStart(2, '0') + ':'
-            }}</span
-            >{{
-              callStore.callMinutes.toString().padStart(2, '0') +
-              ':' +
-              callStore.callSeconds.toString().padStart(2, '0')
-            }}
-          </p>
-        </div>
+      <div class="flex items-center gap-4 text-2xl">
+        <div v-for="(person_id, person_name) in callStore.participants">{{ person_id }}</div>
       </div>
 
       <div class="flex gap-4">
+        <p class="text-sm text-gray-500 dark:text-gray-400">
+          <span v-if="callStore.callHours > 0">{{
+            callStore.callHours.toString().padStart(2, '0') + ':'
+          }}</span
+          >{{
+            callStore.callMinutes.toString().padStart(2, '0') +
+            ':' +
+            callStore.callSeconds.toString().padStart(2, '0')
+          }}
+        </p>
         <button
           id="change-button"
           data-dropdown-toggle="change-dropdown"

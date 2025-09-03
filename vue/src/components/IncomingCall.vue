@@ -18,7 +18,7 @@ const callStore = useCallStore()
           alt="User Avatar"
         />
         <div class="text-center">
-          <p class="text-3xl font-medium">{{ callStore.otherUser.name }}</p>
+          <p class="text-3xl font-medium">b</p>
           <p class="text-sm text-gray-500 dark:text-gray-400">Incoming Call</p>
         </div>
       </div>

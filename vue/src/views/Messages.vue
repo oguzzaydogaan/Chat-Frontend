@@ -333,7 +333,7 @@ async function sendMessage(msg, img) {
       },
     },
     Sender: { Id: Number(userId), Name: userName },
-    Recievers: users.value.map((u) => u.Id),
+    Receivers: users.value.map((u) => u.Id),
   }
   await chatStore.pushUnSent(socketMessage)
   if (!messagesWithDates.value['Today']) {
@@ -401,8 +401,10 @@ function messageTime(time) {
 }
 
 function makeCall() {
-  const target = users.value.find((u) => u.Id != Number(userId))
-  callStore.startCall(target.Id, target.Name)
+  callStore.startCall(
+    users.value.filter((u) => u.Id != Number(userId)),
+    Number(route.params.cid),
+  )
 }
 
 onMounted(async () => {
@@ -445,50 +447,53 @@ onUnmounted(() => {
     <nav
       class="flex w-full bg-white dark:bg-gray-900 items-center justify-between mx-auto p-4 gap-x-4"
     >
-      <RouterLink to="/" class="hover:scale-110 cursor-pointer flex items-center relative">
-        <ChevronLeftIcon class="size-7 text-black dark:text-white" />
-        <span
-          v-if="chatStore.notSeenChatIds.length > 0"
-          class="absolute -right-1.5 transform translate-x-1/2 text-sm font-semibold leading-none text-white"
+      <div class="flex justify-center items-center gap-8">
+        <RouterLink to="/" class="hover:scale-110 cursor-pointer flex items-center relative">
+          <ChevronLeftIcon class="size-7 text-black dark:text-white" />
+          <span
+            v-if="chatStore.notSeenChatIds.length > 0"
+            class="absolute -right-1.5 transform translate-x-1/2 text-sm font-semibold leading-none text-white"
+          >
+            {{ chatStore.notSeenChatIds.length > 99 ? '+99' : chatStore.notSeenChatIds.length }}
+          </span>
+        </RouterLink>
+
+        <RouterLink
+          v-if="users.length > 2"
+          :to="`/info/${route.params.cid}`"
+          class="text-2xl -mt-1 font-semibold overflow-hidden dark:text-white text-black text-center"
+          >{{ name }}</RouterLink
         >
-          {{ chatStore.notSeenChatIds.length <= 99 ? chatStore.notSeenChatIds.length : '+99' }}
-        </span>
-      </RouterLink>
+        <p
+          v-else
+          class="text-2xl -mt-1 font-semibold overflow-hidden dark:text-white text-black text-center"
+        >
+          {{ name }}
+        </p>
+      </div>
 
-      <RouterLink
-        v-if="users.length > 2"
-        :to="`/info/${route.params.cid}`"
-        class="text-2xl font-semibold overflow-hidden dark:text-white text-black text-center"
-        >{{ name }}</RouterLink
-      >
-      <p
-        v-else
-        class="text-2xl font-semibold overflow-hidden dark:text-white text-black text-center"
-      >
-        {{ name }}
-      </p>
-
-      <button
-        v-if="users.length > 2"
-        class="hover:scale-110 cursor-pointer"
-        @click="multiselectGetUsers()"
-        data-modal-target="add-user-modal"
-        data-modal-toggle="add-user-modal"
-      >
-        <PlusCircleIcon
-          class="size-7 text-green-500 dark:text-green-600 hover:text-green-600 dark:hover:text-green-700"
-        />
-      </button>
-      <button
-        v-else
-        @click="makeCall()"
-        class="size-7 flex justify-center items-center hover:scale-110 disabled:opacity-50"
-        :disabled="callStore.isInCall || callStore.isCalling || callStore.isIncomingCall"
-      >
-        <PhoneIcon
-          class="size-5 text-green-500 dark:text-green-600 hover:text-green-600 dark:hover:text-green-700"
-        />
-      </button>
+      <div class="flex justify-center items-center">
+        <button
+          v-if="users.length > 2"
+          class="hover:scale-110 cursor-pointer"
+          @click="multiselectGetUsers()"
+          data-modal-target="add-user-modal"
+          data-modal-toggle="add-user-modal"
+        >
+          <PlusCircleIcon
+            class="size-7 text-green-500 dark:text-green-600 hover:text-green-600 dark:hover:text-green-700"
+          />
+        </button>
+        <button
+          @click="makeCall()"
+          class="size-7 flex justify-center items-center hover:scale-110 disabled:opacity-50"
+          :disabled="callStore.isInCall || callStore.isCalling || callStore.isIncomingCall"
+        >
+          <PhoneIcon
+            class="size-5 text-green-500 dark:text-green-600 hover:text-green-600 dark:hover:text-green-700"
+          />
+        </button>
+      </div>
 
       <div
         v-if="users.length > 2"

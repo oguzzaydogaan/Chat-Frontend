@@ -17,6 +17,7 @@
     "axios": "^1.10.0",
     "flowbite": "^3.1.2",
     "idb": "^8.0.3",
+    "livekit-client": "^2.15.6",
     "pinia": "^3.0.1",
     "sweetalert2": "^11.22.2",
     "vue": "^3.5.13",

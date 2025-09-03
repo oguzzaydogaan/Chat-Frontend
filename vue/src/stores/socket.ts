@@ -54,6 +54,8 @@ export const useSocketStore = defineStore('socket', {
             window.dispatchEvent(new CustomEvent('call-reject', { detail: data }))
           } else if (data.Type == ResponseEventType.Call_Ended) {
             window.dispatchEvent(new CustomEvent('call-end', { detail: data }))
+          } else if (data.Type == ResponseEventType.Call_SFUTokenReceived) {
+            window.dispatchEvent(new CustomEvent('call-sfutoken-received', { detail: data }))
           } else if (data.Type == ResponseEventType.Call_Ice) {
             window.dispatchEvent(new CustomEvent('call-ice', { detail: data }))
           } else if (data.Type == ResponseEventType.Error) {

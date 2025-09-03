@@ -55,7 +55,6 @@ function FindKey(time) {
 }
 
 async function onAddCallToHistory(event) {
-  console.log(event.detail)
   calls.value.unshift(event.detail)
 }
 

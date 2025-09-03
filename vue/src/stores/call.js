@@ -32,8 +32,6 @@ export const useCallStore = defineStore('call', () => {
   }
 
   async function startCall(callees, id) {
-    console.log(callees)
-    console.log(id)
     userId = Number(localStorage.getItem('userId'))
     userName = localStorage.getItem('name')
     otherUsers.value = callees
@@ -63,6 +61,19 @@ export const useCallStore = defineStore('call', () => {
       room = new Room()
       await room.connect(import.meta.env.VITE_LIVEKIT_URL, event.detail.Token)
 
+      room.remoteParticipants.forEach((participant) => {
+        participant.audioTrackPublications.forEach((publication) => {
+          if (publication.track && publication.kind === 'audio') {
+            const audioEl = new Audio()
+            audioEl.autoplay = true
+            audioEl.controls = false
+            publication.track.attach(audioEl)
+            participant._audioEl = audioEl
+            participants.value.set(participant.identity, participant.name)
+          }
+        })
+      })
+
       room.on(RoomEvent.TrackSubscribed, (track, publication, participant) => {
         if (track.kind === 'audio') {
           const audioEl = new Audio()
@@ -90,7 +101,6 @@ export const useCallStore = defineStore('call', () => {
       }
 
       if (isCalling.value && room.numParticipants > 0) {
-        console.log(room.numParticipants)
         isCalling.value = false
         isInCall.value = true
         startTimer()
@@ -228,7 +238,6 @@ export const useCallStore = defineStore('call', () => {
 
   async function toggleMic() {
     if (!room || !localAudioTrack) return
-    console.log(room.remoteParticipants)
     if (isMute.value) {
       pubTrack.unmute()
     } else {

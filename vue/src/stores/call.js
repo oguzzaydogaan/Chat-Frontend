@@ -32,8 +32,6 @@ export const useCallStore = defineStore('call', () => {
   }
 
   async function startCall(callees, id) {
-    console.log(callees)
-    console.log(id)
     userId = Number(localStorage.getItem('userId'))
     userName = localStorage.getItem('name')
     otherUsers.value = callees
@@ -90,7 +88,6 @@ export const useCallStore = defineStore('call', () => {
       }
 
       if (isCalling.value && room.numParticipants > 0) {
-        console.log(room.numParticipants)
         isCalling.value = false
         isInCall.value = true
         startTimer()
@@ -228,7 +225,6 @@ export const useCallStore = defineStore('call', () => {
 
   async function toggleMic() {
     if (!room || !localAudioTrack) return
-    console.log(room.remoteParticipants)
     if (isMute.value) {
       pubTrack.unmute()
     } else {

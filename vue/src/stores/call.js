@@ -61,6 +61,19 @@ export const useCallStore = defineStore('call', () => {
       room = new Room()
       await room.connect(import.meta.env.VITE_LIVEKIT_URL, event.detail.Token)
 
+      room.remoteParticipants.forEach((participant) => {
+        participant.audioTrackPublications.forEach((publication) => {
+          if (publication.track && publication.kind === 'audio') {
+            const audioEl = new Audio()
+            audioEl.autoplay = true
+            audioEl.controls = false
+            publication.track.attach(audioEl)
+            participant._audioEl = audioEl
+            participants.value.set(participant.identity, participant.name)
+          }
+        })
+      })
+
       room.on(RoomEvent.TrackSubscribed, (track, publication, participant) => {
         if (track.kind === 'audio') {
           const audioEl = new Audio()

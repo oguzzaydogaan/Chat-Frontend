@@ -7,10 +7,10 @@ const callStore = useCallStore()
 
 <template>
   <main
-    class="absolute h-full w-full z-50 flex flex-col items-center bg-white text-black dark:bg-gray-900 dark:text-white"
+    class="absolute h-full w-full z-50 flex flex-col items-center bg-white text-black dark:bg-gray-900 dark:text-white overflow-y-auto"
   >
     <audio src="/sounds/incoming-call.mp3" loop autoplay playsinline="true"></audio>
-    <div class="flex flex-col justify-between items-center w-full max-w-sm h-full py-16">
+    <div class="flex flex-col flex-1 justify-between items-center gap-2 max-w-sm py-[6dvh]">
       <div class="flex flex-col items-center gap-4 text-2xl">
         <img
           class="size-32 rounded-full ring-2 ring-gray-300 dark:ring-gray-700"
@@ -23,7 +23,7 @@ const callStore = useCallStore()
         </div>
       </div>
 
-      <div class="flex gap-24 justify-center items-center">
+      <div class="flex gap-10 justify-center items-center">
         <button
           @click="callStore.sendAnswer(false)"
           class="p-3 rounded-full bg-red-500 hover:bg-red-600 dark:bg-red-600 dark:hover:bg-red-700 text-white"

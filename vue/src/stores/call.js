@@ -10,7 +10,7 @@ export const useCallStore = defineStore('call', () => {
   let userName = null
   const otherUsers = ref([])
   let room = null
-  const participants = ref({})
+  const participants = ref(new Map())
   let localAudioTrack = null
   let pubTrack = null
   const microphones = ref([])
@@ -32,6 +32,8 @@ export const useCallStore = defineStore('call', () => {
   }
 
   async function startCall(callees, id) {
+    console.log(callees)
+    console.log(id)
     userId = Number(localStorage.getItem('userId'))
     userName = localStorage.getItem('name')
     otherUsers.value = callees
@@ -68,7 +70,7 @@ export const useCallStore = defineStore('call', () => {
           audioEl.controls = false
           track.attach(audioEl)
           participant._audioEl = audioEl
-          participants.value[participant.identity] = participant.name
+          participants.value.set(participant.identity, participant.name)
         }
       })
 
@@ -77,7 +79,7 @@ export const useCallStore = defineStore('call', () => {
           track.detach(participant._audioEl)
           participant._audioEl.remove()
           delete participant._audioEl
-          delete participants.value[participant.identity]
+          participants.value.delete(participant.identity)
         }
       })
 
@@ -91,6 +93,7 @@ export const useCallStore = defineStore('call', () => {
         console.log(room.numParticipants)
         isCalling.value = false
         isInCall.value = true
+        startTimer()
       }
 
       const tracks = await createLocalTracks({ audio: true, video: false })
@@ -108,14 +111,14 @@ export const useCallStore = defineStore('call', () => {
       room = null
     }
     call = null
-    isInCall.value = false
     isCalling.value = false
     isIncomingCall.value = false
     showCallUI.value = true
     isMute.value = false
     localAudioTrack = null
     pubTrack = null
-    participants.value = {}
+    participants.value.clear()
+    isInCall.value = false
   }
 
   async function endCall() {
@@ -171,27 +174,33 @@ export const useCallStore = defineStore('call', () => {
   }
 
   async function onCallAccept(event) {
-    if (event.detail.Payload.Call.Id == call.Id) {
-      if (isCalling.value) {
-        isCalling.value = false
-        isInCall.value = true
-        let timer = startTimer()
+    if (call) {
+      if (event.detail.Payload.Call.Id == call.Id) {
+        if (isCalling.value) {
+          isCalling.value = false
+          isInCall.value = true
+          let timer = startTimer()
+        }
       }
     }
   }
 
   async function onCallReject(event) {
-    if (event.detail.Payload.Call.Id == call.Id) {
-      if (isCalling.value && otherUsers.value.length == 1) {
-        await resetAll()
+    if (call) {
+      if (event.detail.Payload.Call.Id == call.Id) {
+        if (isCalling.value && otherUsers.value.length == 1) {
+          await resetAll()
+        }
       }
     }
   }
 
   async function onCallEnd(event) {
-    if (event.detail.Payload.Call.Id == call.Id) {
-      if (isInCall.value && otherUsers.value.length == 1) {
-        await resetAll()
+    if (call) {
+      if (event.detail.Payload.Call.Id == call.Id) {
+        if (isInCall.value && otherUsers.value.length == 1) {
+          await resetAll()
+        }
       }
     }
   }
@@ -233,7 +242,9 @@ export const useCallStore = defineStore('call', () => {
     await room.switchActiveDevice('audioinput', deviceId)
   }
 
-  async function setOutput(deviceId) {}
+  async function setOutput(deviceId) {
+    room.switchActiveDevice('audiooutput', deviceId)
+  }
 
   window.addEventListener('call-offer', onCallOffer)
   window.addEventListener('call-sfutoken-received', onSFUTokenReceived)

@@ -4,6 +4,10 @@
 @plugin "flowbite/plugin";
 @source "../../node_modules/flowbite";
 
+@theme {
+  --breakpoint-940: 940px;
+}
+
 ::-webkit-scrollbar {
   display: none;
 }

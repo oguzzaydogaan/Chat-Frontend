@@ -96,14 +96,16 @@ onUnmounted(() => {
         v-for="call in calls"
         @click="
           callStore.startCall(
-            call.caller.id == Number(userId) ? call.callee.id : call.caller.id,
-            call.caller.id == Number(userId) ? call.callee.name : call.caller.name,
+            call.caller.id == Number(userId)
+              ? [{ Id: call.callees[0].id, Name: call.callees[0].name }]
+              : [{ Id: call.caller.id, Name: call.caller.name }],
+            call.chatId,
           )
         "
         class="flex justify-between items-center p-4 border-b hover:bg-gray-100 border-gray-300 dark:border-gray-400 dark:hover:bg-gray-700"
       >
         <p class="font-bold dark:text-white">
-          {{ call.caller.id == Number(userId) ? call.callee.name : call.caller.name }}
+          {{ call.caller.id == Number(userId) ? call.callees[0].name : call.caller.name }}
         </p>
         <div class="flex justify-center items-center gap-2 text-gray-500 dark:text-gray-500">
           <p class="text-xs text-center">

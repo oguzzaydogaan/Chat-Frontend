@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { onMounted, ref } from 'vue'
+import { nextTick, onMounted, ref } from 'vue'
 import axios from '@/plugins/axios'
 import db from '@/plugins/db'
 import { useRoute } from 'vue-router'
@@ -108,6 +108,7 @@ export const useChatStore = defineStore('chat', () => {
     await filterUnSent(event.detail.Message.LocalId)
     await pushUnsaved(event.detail.Message)
     await moveChatToTop(event, 2)
+    await nextTick()
   }
 
   async function onSaveMessage(event) {

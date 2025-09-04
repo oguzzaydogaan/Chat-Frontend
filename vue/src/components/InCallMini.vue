@@ -10,7 +10,7 @@ const callStore = useCallStore()
       @click="callStore.changeShowCallUI"
       class="bg-green-500 hover:bg-green-600 dark:bg-green-600 dark:hover:bg-green-700 text-white flex items-center justify-center w-full"
     >
-      In call -&nbsp;
+      In call {{ callStore.callName }} -&nbsp;
       <span v-if="callStore.callHours > 0" class="text-gray-200 text-xs">{{
         callStore.callHours.toString().padStart(2, '0') + ':'
       }}</span>

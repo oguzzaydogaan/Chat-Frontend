@@ -6,6 +6,10 @@ import { initDropdowns } from 'flowbite'
 import { onMounted } from 'vue'
 
 const callStore = useCallStore()
+async function getVideoSrc(event, key) {
+  event.target.srcObject = callStore.participants.get(key)._videoSrc
+  event.target.play()
+}
 onMounted(() => initDropdowns())
 </script>
 
@@ -13,10 +17,14 @@ onMounted(() => initDropdowns())
   <main
     class="absolute h-full w-full z-50 flex flex-col items-center bg-white text-black dark:bg-gray-900 dark:text-white overflow-y-auto"
   >
-    <nav class="flex w-full pt-2 px-2">
+    <nav class="flex justify-between items-center w-full pt-2 px-2">
       <button @click="callStore.changeShowCallUI" class="flex items-center hover:scale-110">
         <ChevronLeftIcon class="size-7 text-black dark:text-white" />
       </button>
+      <p class="text-2xl -mt-1 font-medium">
+        {{ callStore.otherUsers.length > 1 ? callStore.callName : 'In Call' }}
+      </p>
+      <div class="w-7"></div>
     </nav>
     <div class="flex flex-col flex-1 justify-between gap-2 p-2 items-center w-full overflow-y-auto">
       <div
@@ -27,7 +35,7 @@ onMounted(() => initDropdowns())
           v-for="key in callStore.participants.keys()"
           class="flex flex-1 min-h-[150px] min-w-full sm:min-w-[300px] 940:min-w-[400px] text-center items-center justify-center text-gray-500 dark:text-gray-200 bg-gray-200 dark:bg-gray-700 rounded-lg"
         >
-          <p>{{ callStore.participants.get(key) }}</p>
+          <p>{{ callStore.participants.get(key).name }}</p>
         </div>
       </div>
       <div v-if="callStore.participants.size == 0" class="flex flex-1 justify-center items-center">

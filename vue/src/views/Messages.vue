@@ -183,7 +183,7 @@ async function onNewMessage(event) {
       newMessageCount.value += 1
     }
   } else {
-    const audio = new Audio('/sounds/notification.mp3')
+    const audio = new Audio('/sounds/dc-notification.mp3')
     audio.play()
   }
 }
@@ -447,31 +447,29 @@ onUnmounted(() => {
     <nav
       class="flex w-full bg-white dark:bg-gray-900 items-center justify-between mx-auto p-4 gap-x-4"
     >
-      <div class="flex justify-center items-center gap-8">
-        <RouterLink to="/" class="hover:scale-110 cursor-pointer flex items-center relative">
+      <div :class="{ 'w-14': users.length > 2 }">
+        <RouterLink to="/" class="hover:scale-110 cursor-pointer flex items-center relative size-7">
           <ChevronLeftIcon class="size-7 text-black dark:text-white" />
           <span
             v-if="chatStore.notSeenChatIds.length > 0"
-            class="absolute -right-1.5 transform translate-x-1/2 text-sm font-semibold leading-none text-white"
+            class="absolute -right-1.5 transform translate-x-1/2 text-sm font-semibold leading-none text-black dark:text-white"
           >
             {{ chatStore.notSeenChatIds.length > 99 ? '+99' : chatStore.notSeenChatIds.length }}
           </span>
         </RouterLink>
-
-        <RouterLink
-          v-if="users.length > 2"
-          :to="`/info/${route.params.cid}`"
-          class="text-2xl -mt-1 font-semibold overflow-hidden dark:text-white text-black text-center"
-          >{{ name }}</RouterLink
-        >
-        <p
-          v-else
-          class="text-2xl -mt-1 font-semibold overflow-hidden dark:text-white text-black text-center"
-        >
-          {{ name }}
-        </p>
       </div>
-
+      <RouterLink
+        v-if="users.length > 2"
+        :to="`/info/${route.params.cid}`"
+        class="text-2xl -mt-1 font-semibold overflow-hidden dark:text-white text-black text-center"
+        >{{ name }}</RouterLink
+      >
+      <p
+        v-else
+        class="text-2xl -mt-1 font-semibold overflow-hidden dark:text-white text-black text-center"
+      >
+        {{ name }}
+      </p>
       <div class="flex justify-center items-center">
         <button
           v-if="users.length > 2"

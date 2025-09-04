@@ -9,7 +9,7 @@ const callStore = useCallStore()
   <main
     class="absolute h-full w-full z-50 flex flex-col items-center bg-white text-black dark:bg-gray-900 dark:text-white overflow-y-auto"
   >
-    <audio src="/sounds/incoming-call.mp3" loop autoplay playsinline="true"></audio>
+    <audio src="/sounds/dc-calling.mp3" loop autoplay playsinline="true"></audio>
     <div class="flex flex-col flex-1 justify-between items-center gap-2 max-w-sm py-[6dvh]">
       <div class="flex flex-col items-center gap-4 text-2xl">
         <img
@@ -18,7 +18,7 @@ const callStore = useCallStore()
           alt="User Avatar"
         />
         <div class="text-center">
-          <p class="text-3xl font-medium">b</p>
+          <p class="text-3xl font-medium">{{ callStore.callName }}</p>
           <p class="text-sm text-gray-500 dark:text-gray-400">Incoming Call</p>
         </div>
       </div>

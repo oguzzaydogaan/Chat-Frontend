@@ -46,7 +46,7 @@ export const useChatStore = defineStore('chat', () => {
     }
 
     if (
-      event.detail.Sender.Id != Number(userId) ||
+      event.detail.Sender.Id != Number(userId) &&
       !(route.name == 'messages' && route.params.cid && Number(route.params.cid) == chat.id)
     ) {
       addId(chat.id)
@@ -65,7 +65,12 @@ export const useChatStore = defineStore('chat', () => {
     } else {
       chats.value.splice(0, 0, {
         id: chat.id,
-        name: chat.name,
+        name:
+          chat.userCount > 2
+            ? chat.name
+            : chat.name.split(',')[0] == localStorage.getItem('name')
+              ? chat.name.split(',')[1]
+              : chat.name.split(',')[0],
         count: -1,
         userCount: chat.userCount,
       })
@@ -108,7 +113,6 @@ export const useChatStore = defineStore('chat', () => {
     await filterUnSent(event.detail.Message.LocalId)
     await pushUnsaved(event.detail.Message)
     await moveChatToTop(event, 2)
-    await nextTick()
   }
 
   async function onSaveMessage(event) {

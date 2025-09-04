@@ -36,7 +36,7 @@ async function search(query) {
 }
 
 async function onNewMessage(event) {
-  const audio = new Audio('/sounds/notification.mp3')
+  const audio = new Audio('/sounds/dc-notification.mp3')
   audio.play()
 }
 
@@ -44,7 +44,7 @@ async function onNewChat(event) {
   if (event.detail.Sender.Id == Number(userId)) {
     router.push(`/messages/${event.detail.Payload.Chat.Id}`)
   } else {
-    const audio = new Audio('/sounds/notification.mp3')
+    const audio = new Audio('/sounds/dc-notification.mp3')
     audio.play()
   }
 }

@@ -16,6 +16,7 @@ export const useCallStore = defineStore('call', () => {
   const microphones = ref([])
   const speakers = ref([])
   let call = null
+  const callName = ref('')
   const isIncomingCall = ref(false)
   const isInCall = ref(false)
   const isCalling = ref(false)
@@ -26,8 +27,7 @@ export const useCallStore = defineStore('call', () => {
   const isMute = ref(false)
 
   async function getConnectedDevices(type) {
-    let devices = await navigator.mediaDevices.enumerateDevices()
-    devices = devices.filter((device) => device.kind === type)
+    let devices = await Room.getLocalDevices(type)
     return devices.filter((d) => d.deviceId !== 'default' && d.deviceId !== 'communications')
   }
 
@@ -54,35 +54,44 @@ export const useCallStore = defineStore('call', () => {
   }
 
   async function onSFUTokenReceived(event) {
+    let tempId = null
     if (!room) {
       if (!call) {
         call = event.detail.Call
+        tempId = call.Id
+        callName.value =
+          otherUsers.value.length > 1
+            ? call.Chat.Name
+            : call.Chat.Name.split(',')[0] == localStorage.getItem('name')
+              ? call.Chat.Name.split(',')[1]
+              : call.Chat.Name.split(',')[0]
       }
       room = new Room()
       await room.connect(import.meta.env.VITE_LIVEKIT_URL, event.detail.Token)
 
       room.remoteParticipants.forEach((participant) => {
         participant.audioTrackPublications.forEach((publication) => {
-          if (publication.track && publication.kind === 'audio') {
+          if (publication.track) {
             const audioEl = new Audio()
             audioEl.autoplay = true
             audioEl.controls = false
             publication.track.attach(audioEl)
             participant._audioEl = audioEl
-            participants.value.set(participant.identity, participant.name)
           }
         })
+        participants.value.set(participant.identity, participant)
       })
 
       room.on(RoomEvent.TrackSubscribed, (track, publication, participant) => {
+        console.log(track)
         if (track.kind === 'audio') {
           const audioEl = new Audio()
           audioEl.autoplay = true
           audioEl.controls = false
           track.attach(audioEl)
           participant._audioEl = audioEl
-          participants.value.set(participant.identity, participant.name)
         }
+        participants.value.set(participant.identity, participant)
       })
 
       room.on(RoomEvent.TrackUnsubscribed, (track, publication, participant) => {
@@ -90,6 +99,12 @@ export const useCallStore = defineStore('call', () => {
           track.detach(participant._audioEl)
           participant._audioEl.remove()
           delete participant._audioEl
+          participants.value.set(participant.identity, participant)
+        }
+      })
+
+      room.on(RoomEvent.ParticipantDisconnected, (participant) => {
+        if (participants.value.get(participant.identity)) {
           participants.value.delete(participant.identity)
         }
       })
@@ -98,20 +113,26 @@ export const useCallStore = defineStore('call', () => {
         isIncomingCall.value = false
         isInCall.value = true
         let timer = startTimer()
-      }
-
-      if (isCalling.value && room.numParticipants > 0) {
+      } else if (isCalling.value && room.remoteParticipants.size > 0) {
         isCalling.value = false
         isInCall.value = true
         startTimer()
       }
 
-      const tracks = await createLocalTracks({ audio: true, video: false })
+      const tracks = await createLocalTracks({
+        audio: { noiseSuppression: true, echoCancellation: false },
+      })
       localAudioTrack = tracks[0]
       pubTrack = await room.localParticipant.publishTrack(localAudioTrack)
 
       microphones.value = await getConnectedDevices('audioinput')
       speakers.value = await getConnectedDevices('audiooutput')
+      await new Promise((resolve) => setTimeout(resolve, 10000))
+      if (call && tempId == call.Id) {
+        if (isCalling.value) {
+          resetAll()
+        }
+      }
     }
   }
 
@@ -156,9 +177,22 @@ export const useCallStore = defineStore('call', () => {
       userId = Number(localStorage.getItem('userId'))
       userName = localStorage.getItem('name')
       call = event.detail.Payload.Call
+      let tempId = call.Id
+      callName.value =
+        call.Callees.length > 1
+          ? call.Chat.Name
+          : call.Chat.Name.split(',')[0] == localStorage.getItem('name')
+            ? call.Chat.Name.split(',')[1]
+            : call.Chat.Name.split(',')[0]
       otherUsers.value = event.detail.Payload.Call.Callees.filter((u) => u.Id != userId)
       otherUsers.value.push(event.detail.Sender)
       isIncomingCall.value = true
+      await new Promise((resolve) => setTimeout(resolve, 10000))
+      if (call && tempId == call.Id) {
+        if (isIncomingCall.value) {
+          resetAll()
+        }
+      }
     } else {
       //busy
     }
@@ -280,6 +314,7 @@ export const useCallStore = defineStore('call', () => {
     isCalling,
     showCallUI,
     otherUsers,
+    callName,
     callHours,
     callMinutes,
     callSeconds,

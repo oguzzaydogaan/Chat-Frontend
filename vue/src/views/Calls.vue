@@ -37,15 +37,10 @@ function FindKey(time) {
       key = date.toLocaleDateString('en-US', {
         weekday: 'long',
       })
-    } else if (diffDays < 365) {
-      key = date.toLocaleDateString('en-US', {
-        day: '2-digit',
-        month: 'short',
-        weekday: 'short',
-      })
     } else {
       key = date.toLocaleDateString('en-US', {
-        month: 'short',
+        day: '2-digit',
+        month: '2-digit',
         year: 'numeric',
       })
     }
@@ -98,7 +93,7 @@ onUnmounted(() => {
             call.caller.id == Number(userId)
               ? [{ Id: call.callees[0].id, Name: call.callees[0].name }]
               : [{ Id: call.caller.id, Name: call.caller.name }],
-            call.chatId,
+            call.chat.id,
           )
         "
         class="flex justify-between items-center p-4 border-b hover:bg-gray-100 border-gray-300 dark:border-gray-400 dark:hover:bg-gray-700"

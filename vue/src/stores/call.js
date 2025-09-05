@@ -69,6 +69,16 @@ export const useCallStore = defineStore('call', () => {
       room = new Room()
       await room.connect(import.meta.env.VITE_LIVEKIT_URL, event.detail.Token)
 
+      if (isIncomingCall.value) {
+        isIncomingCall.value = false
+        isInCall.value = true
+        let timer = startTimer()
+      } else if (isCalling.value && room.remoteParticipants.size > 0) {
+        isCalling.value = false
+        isInCall.value = true
+        startTimer()
+      }
+
       room.on(RoomEvent.Connected, () => {
         const joined = new Audio('/sounds/joined.mp3')
         joined.play()
@@ -92,13 +102,21 @@ export const useCallStore = defineStore('call', () => {
       })
 
       room.on(RoomEvent.ParticipantConnected, (participant) => {
+        if (isCalling.value) {
+          isCalling.value = false
+          isInCall.value = true
+          let timer = startTimer()
+        }
         participants.value.set(participant.identity, participant)
         const joined = new Audio('/sounds/joined.mp3')
         joined.play()
       })
-      room.on(RoomEvent.ParticipantDisconnected, (participant) => {
+      room.on(RoomEvent.ParticipantDisconnected, async (participant) => {
         if (participants.value.get(participant.identity)) {
           participants.value.delete(participant.identity)
+        }
+        if (otherUsers.value.length == 1) {
+          await resetAll()
         }
         const dc = new Audio('/sounds/left.mp3')
         dc.play()
@@ -122,16 +140,6 @@ export const useCallStore = defineStore('call', () => {
           participants.value.set(participant.identity, participant)
         }
       })
-
-      if (isIncomingCall.value) {
-        isIncomingCall.value = false
-        isInCall.value = true
-        let timer = startTimer()
-      } else if (isCalling.value && room.remoteParticipants.size > 0) {
-        isCalling.value = false
-        isInCall.value = true
-        startTimer()
-      }
 
       const tracks = await createLocalTracks({
         audio: { noiseSuppression: true, echoCancellation: false },
@@ -228,30 +236,10 @@ export const useCallStore = defineStore('call', () => {
     }
   }
 
-  async function onCallAccept(event) {
-    if (call) {
-      if (event.detail.Payload.Call.Id == call.Id) {
-        if (isCalling.value) {
-          isCalling.value = false
-          isInCall.value = true
-          let timer = startTimer()
-        }
-      }
-    }
-  }
   async function onCallReject(event) {
     if (call) {
       if (event.detail.Payload.Call.Id == call.Id) {
         if (isCalling.value && otherUsers.value.length == 1) {
-          await resetAll()
-        }
-      }
-    }
-  }
-  async function onCallEnd(event) {
-    if (call) {
-      if (event.detail.Payload.Call.Id == call.Id) {
-        if (isInCall.value && otherUsers.value.length == 1) {
           await resetAll()
         }
       }
@@ -310,9 +298,7 @@ export const useCallStore = defineStore('call', () => {
   window.addEventListener('call-offer', onCallOffer)
   window.addEventListener('call-sfutoken-received', onSFUTokenReceived)
   window.addEventListener('call-cancel', onCallCancel)
-  window.addEventListener('call-accept', onCallAccept)
   window.addEventListener('call-reject', onCallReject)
-  window.addEventListener('call-end', onCallEnd)
 
   return {
     startCall,

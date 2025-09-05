@@ -137,8 +137,8 @@ onUnmounted(() => {
           <span class="sr-only">Open user menu</span>
           <img
             class="w-8 h-8 rounded-full"
-            src="https://static.vecteezy.com/system/resources/previews/009/292/244/non_2x/default-avatar-icon-of-social-media-user-vector.jpg"
-            alt="user photo"
+            src="/img/blank-profile-picture.svg"
+            alt="/img/blank-profile-picture.svg"
           />
         </button>
         <!-- Dropdown menu -->

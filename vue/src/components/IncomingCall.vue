@@ -9,7 +9,7 @@ const callStore = useCallStore()
   <main
     class="absolute h-full w-full z-50 flex flex-col items-center bg-white text-black dark:bg-gray-900 dark:text-white overflow-y-auto"
   >
-    <audio src="/sounds/dc-calling.mp3" loop autoplay playsinline="true"></audio>
+    <audio src="/sounds/incoming-calling.mp3" loop autoplay playsinline="true"></audio>
     <div class="flex flex-col flex-1 justify-between items-center gap-2 max-w-sm py-[6dvh]">
       <div class="flex flex-col items-center gap-4 text-2xl">
         <img

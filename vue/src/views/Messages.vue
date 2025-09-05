@@ -183,7 +183,7 @@ async function onNewMessage(event) {
       newMessageCount.value += 1
     }
   } else {
-    const audio = new Audio('/sounds/dc-notification.mp3')
+    const audio = new Audio('/sounds/notification.mp3')
     audio.play()
   }
 }

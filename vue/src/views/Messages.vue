@@ -140,6 +140,9 @@ async function GetChat() {
 async function onScroll(event) {
   let distance = event.target.scrollHeight - event.target.scrollTop - event.target.clientHeight
   isScrolledUp.value = distance > 200
+  if (!isScrolledUp.value) {
+    newMessageCount.value = 0
+  }
 }
 
 async function goToBottom() {
@@ -554,7 +557,7 @@ onUnmounted(() => {
             >
               <img
                 class="w-6 h-6 rounded-full"
-                src="https://static.vecteezy.com/system/resources/previews/009/292/244/non_2x/default-avatar-icon-of-social-media-user-vector.jpg"
+                src="/img/blank-profile-picture.svg"
                 alt="Jese image"
               />
               <div
@@ -599,7 +602,7 @@ onUnmounted(() => {
               >
                 <img
                   v-if="message.ImageString != ''"
-                  :src="`${message.ImageString}`"
+                  :src="message.ImageString"
                   class="rounded-lg bg-gray-800 mb-1 border border-green-700 dark:border-green-800 shadow"
                   @click="showImage(message.ImageString)"
                 />
@@ -621,7 +624,7 @@ onUnmounted(() => {
               </div>
               <img
                 class="w-6 h-6 rounded-full"
-                src="https://static.vecteezy.com/system/resources/previews/009/292/244/non_2x/default-avatar-icon-of-social-media-user-vector.jpg"
+                src="/img/blank-profile-picture.svg"
                 alt="Jese image"
               />
             </div>
@@ -668,7 +671,7 @@ onUnmounted(() => {
               </div>
               <img
                 class="w-6 h-6 rounded-full"
-                src="https://static.vecteezy.com/system/resources/previews/009/292/244/non_2x/default-avatar-icon-of-social-media-user-vector.jpg"
+                src="/img/blank-profile-picture.svg"
                 alt="Jese image"
               />
             </div>
@@ -678,7 +681,7 @@ onUnmounted(() => {
             >
               <img
                 class="w-6 h-6 rounded-full"
-                src="https://static.vecteezy.com/system/resources/previews/009/292/244/non_2x/default-avatar-icon-of-social-media-user-vector.jpg"
+                src="/img/blank-profile-picture.svg"
                 alt="Jese image"
               />
               <div

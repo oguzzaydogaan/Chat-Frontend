@@ -41,7 +41,7 @@ onMounted(() => {
         class="flex items-center mb-6 text-2xl font-semibold text-gray-900 dark:text-white"
       >
         <img class="w-8 h-8 mr-2" src="../assets/img/logo.png" alt="logo" />
-        Vue Chat
+        Cordena
       </a>
       <div
         class="w-full bg-white rounded-lg shadow dark:border md:mt-0 sm:max-w-md xl:p-0 dark:bg-gray-800 dark:border-gray-700"

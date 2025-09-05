@@ -2,8 +2,8 @@ import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { useSocketStore } from './socket'
 import { RequestEventType } from '@/assets/js/enums'
-import { Room, RoomEvent, createLocalTracks } from 'livekit-client'
-import { KrispNoiseFilter } from '@livekit/krisp-noise-filter'
+import { Room, RoomEvent, createLocalTracks, LocalAudioTrack, Track } from 'livekit-client'
+import { isKrispNoiseFilterSupported, KrispNoiseFilter } from '@livekit/krisp-noise-filter'
 
 export const useCallStore = defineStore('call', () => {
   const socketStore = useSocketStore()
@@ -14,6 +14,7 @@ export const useCallStore = defineStore('call', () => {
   const participants = ref(new Map())
   let localAudioTrack = null
   let pubTrack = null
+  let krispProcessor = null
   const microphones = ref([])
   const speakers = ref([])
   let call = null
@@ -145,9 +146,12 @@ export const useCallStore = defineStore('call', () => {
       const tracks = await createLocalTracks({
         audio: true,
       })
+      krispProcessor = KrispNoiseFilter()
       localAudioTrack = tracks[0]
       pubTrack = await room.localParticipant.publishTrack(localAudioTrack)
-      pubTrack.track.setProcessor(KrispNoiseFilter())
+      await pubTrack.track.setProcessor(krispProcessor)
+      await krispProcessor.setEnabled(true)
+
       microphones.value = await getConnectedDevices('audioinput')
       speakers.value = await getConnectedDevices('audiooutput')
       await new Promise((resolve) => setTimeout(resolve, 20000))
@@ -164,6 +168,7 @@ export const useCallStore = defineStore('call', () => {
       await room.disconnect()
       room = null
     }
+    krispProcessor = null
     call = null
     isCalling.value = false
     isIncomingCall.value = false
@@ -279,6 +284,9 @@ export const useCallStore = defineStore('call', () => {
     if (!room || !localAudioTrack) return
     if (isMute.value) {
       pubTrack.unmute()
+      krispProcessor = KrispNoiseFilter()
+      pubTrack.track.setProcessor(krispProcessor)
+      await krispProcessor.setEnabled(true)
       const unmute = new Audio('/sounds/unmute.mp3')
       unmute.play()
     } else {

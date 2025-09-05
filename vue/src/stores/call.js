@@ -3,6 +3,7 @@ import { ref } from 'vue'
 import { useSocketStore } from './socket'
 import { RequestEventType } from '@/assets/js/enums'
 import { Room, RoomEvent, createLocalTracks } from 'livekit-client'
+import { KrispNoiseFilter } from '@livekit/krisp-noise-filter'
 
 export const useCallStore = defineStore('call', () => {
   const socketStore = useSocketStore()
@@ -142,11 +143,11 @@ export const useCallStore = defineStore('call', () => {
       })
 
       const tracks = await createLocalTracks({
-        audio: { noiseSuppression: true, echoCancellation: false },
+        audio: true,
       })
       localAudioTrack = tracks[0]
       pubTrack = await room.localParticipant.publishTrack(localAudioTrack)
-
+      pubTrack.track.setProcessor(KrispNoiseFilter())
       microphones.value = await getConnectedDevices('audioinput')
       speakers.value = await getConnectedDevices('audiooutput')
       await new Promise((resolve) => setTimeout(resolve, 20000))
@@ -292,7 +293,9 @@ export const useCallStore = defineStore('call', () => {
     await room.switchActiveDevice('audioinput', deviceId)
   }
   async function setOutput(deviceId) {
-    room.switchActiveDevice('audiooutput', deviceId)
+    await room.switchActiveDevice('audiooutput', deviceId)
+    const outputChanged = new Audio('/sounds/select-output.mp3')
+    outputChanged.play()
   }
 
   window.addEventListener('call-offer', onCallOffer)
